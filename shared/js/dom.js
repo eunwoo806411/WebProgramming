@@ -1,0 +1,2 @@
+export function el(tag,className='',text=''){const n=document.createElement(tag);if(className)n.className=className;if(text)n.textContent=text;return n;}
+export function notice(message){let n=document.querySelector('#toast');if(!n){n=el('div','toast');n.id='toast';n.setAttribute('role','status');document.body.append(n);}n.textContent=message;n.hidden=false;clearTimeout(notice.timer);notice.timer=setTimeout(()=>n.hidden=true,5000);}
