@@ -1,2 +1,144 @@
 <!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>마이페이지 · 숭실 한 장</title><link rel="icon" href="../../shared/assets/fallback.svg" type="image/svg+xml"><link rel="stylesheet" href="../../shared/css/common.css"><link rel="stylesheet" href="./mypage.css"><script type="module" src="./mypage.js"></script></head><body><header id="site-header"></header><main class="page"><section class="intro"><div><p class="eyebrow">MY LITTLE ARCHIVE</p><h1>나만의 숭실 아카이브</h1><p>내가 남긴 순간과, 오래 간직하고 싶은 장면들.</p></div><span class="badge">마이페이지 · 기본 틀</span></section><section class="panel"><div class="tabs" role="tablist" aria-label="내 사진 분류"><button class="tab" id="liked-tab" role="tab" aria-selected="true" aria-controls="my-results">좋아요한 사진</button><button class="tab" id="uploaded-tab" role="tab" aria-selected="false" aria-controls="my-results">내가 업로드한 사진</button></div><div id="my-results" role="tabpanel" aria-labelledby="liked-tab"><div id="my-status" class="empty" role="status"></div><div id="my-grid" class="photo-grid"></div></div></section><p class="page-note muted">로그인한 사용자 기준의 목록 조회를 연결할 영역입니다. 사진 상세 보기는 메인 페이지로 연결됩니다.</p></main><footer id="site-footer"></footer></body></html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>마이페이지 · 숭실 한 장</title>
+  <link rel="icon" href="../../shared/assets/fallback.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../shared/css/common.css">
+  <!-- 발자취 지도는 메인 페이지 지도 스타일을 그대로 씁니다 -->
+  <link rel="stylesheet" href="../main/main.css">
+  <link rel="stylesheet" href="../../shared/assets/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="./mypage.css">
+  <script defer src="../../shared/assets/vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="./mypage.js"></script>
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <main class="page mp">
+    <!-- ===== 첫 화면 ===== -->
+    <section class="mp-view" id="view-home">
+      <section class="intro">
+        <div>
+          <p class="eyebrow">MY LITTLE ARCHIVE</p>
+          <h1>나만의 숭실 아카이브</h1>
+          <p>내가 남긴 순간과, 오래 간직하고 싶은 장면들.</p>
+        </div>
+        <span class="badge">마이페이지</span>
+      </section>
+
+      <!-- 프로필 -->
+      <div class="mp-card mp-profile">
+        <div class="mp-avatar" id="avatar">?</div>
+        <div class="mp-profile-info">
+          <h2 id="nickname">닉네임</h2>
+          <p class="mp-muted" id="dept"></p>
+        </div>
+        <ul class="mp-counts">
+          <li><strong id="cnt-upload">0</strong><span>업로드</span></li>
+          <li><strong id="cnt-like">0</strong><span>받은 좋아요</span></li>
+        </ul>
+      </div>
+
+      <!-- 발자취 지도 (메인 지도 컴포넌트 재사용) -->
+      <div class="mp-card mp-map-card">
+        <div class="mp-card-head">
+          <div class="mp-head-title"><span class="eyebrow">MY FOOTPRINT</span><h2>나의 캠퍼스 발자취</h2></div>
+          <span class="mp-muted mp-small" id="map-summary"></span>
+        </div>
+        <div class="map-shell mp-map-shell">
+          <div id="map" aria-label="내가 사진을 남긴 캠퍼스 장소 지도"></div>
+          <div class="map-label">● 나의 발자취 <span>MY PHOTO MAP</span></div>
+          <button id="reset-map" class="map-reset button secondary small">⌖ 캠퍼스 중심</button>
+          <div id="map-error" class="map-error notice" hidden role="status"></div>
+          <div id="map-empty" class="mp-map-empty" hidden></div>
+        </div>
+      </div>
+
+      <!-- 활동 히트맵 -->
+      <div class="mp-card">
+        <div class="mp-card-head">
+          <div class="mp-head-title"><span class="eyebrow">ACTIVITY</span><h2>활동 기록</h2></div>
+          <span class="mp-muted mp-small" id="heatmap-summary"></span>
+        </div>
+        <div class="mp-heatmap-wrap">
+          <div class="mp-heatmap-days"><span>월</span><span></span><span>수</span><span></span><span>금</span><span></span><span></span></div>
+          <div id="heatmap" class="mp-heatmap" role="img" aria-label="최근 20주 날짜별 업로드 수"></div>
+        </div>
+        <div class="mp-heatmap-legend mp-small mp-muted">적음 <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> 많음</div>
+      </div>
+
+      <!-- 인스타 스타일 메뉴 -->
+      <nav class="mp-card mp-menu" aria-label="마이페이지 메뉴">
+        <p class="mp-menu-title">내 계정</p>
+        <a href="#account" class="mp-menu-item"><span>👤</span>계정 수정<em>›</em></a>
+        <p class="mp-menu-title">내 활동</p>
+        <a href="#my-photos" class="mp-menu-item"><span>🖼️</span>내 사진 관리<em>›</em></a>
+        <a href="#liked" class="mp-menu-item"><span>♡</span>좋아요한 사진<em>›</em></a>
+        <a href="#stats" class="mp-menu-item"><span>📊</span>내 통계<em>›</em></a>
+      </nav>
+    </section>
+
+    <!-- ===== 계정 수정 ===== -->
+    <section class="mp-view" id="view-account" hidden>
+      <a href="#" class="mp-back">‹ 마이페이지</a>
+      <h1 class="mp-view-title">계정 수정</h1>
+      <form class="mp-card mp-form" id="account-form">
+        <label for="nickname-input">닉네임</label>
+        <input id="nickname-input" maxlength="12" required>
+        <p class="mp-muted mp-small">2~12자. (수정 가능 항목은 팀 논의 후 추가 예정)</p>
+        <button type="submit" class="button">저장</button>
+      </form>
+    </section>
+
+    <!-- ===== 내 사진 관리 ===== -->
+    <section class="mp-view" id="view-my-photos" hidden>
+      <a href="#" class="mp-back">‹ 마이페이지</a>
+      <h1 class="mp-view-title">내 사진 관리</h1>
+      <div id="my-photo-grid" class="mp-grid"></div>
+    </section>
+
+    <!-- ===== 좋아요한 사진 ===== -->
+    <section class="mp-view" id="view-liked" hidden>
+      <a href="#" class="mp-back">‹ 마이페이지</a>
+      <h1 class="mp-view-title">좋아요한 사진</h1>
+      <div id="liked-grid" class="mp-grid"></div>
+    </section>
+
+    <!-- ===== 내 통계 ===== -->
+    <section class="mp-view" id="view-stats" hidden>
+      <a href="#" class="mp-back">‹ 마이페이지</a>
+      <h1 class="mp-view-title">내 통계</h1>
+      <div class="mp-stat-row" id="stat-tiles"></div>
+      <div class="mp-card">
+        <h2>가장 많이 찍은 장소 TOP 3</h2>
+        <div id="stat-places" class="mp-bars"></div>
+      </div>
+      <div class="mp-card">
+        <h2>가장 인기 있는 내 사진 TOP 3</h2>
+        <div id="stat-best"></div>
+      </div>
+    </section>
+
+    <!-- 사진 수정 모달 -->
+    <dialog id="edit-dialog" class="mp-dialog">
+      <form method="dialog" id="edit-form">
+        <h2>사진 정보 수정</h2>
+        <label for="edit-caption">설명</label>
+        <input id="edit-caption" maxlength="60">
+        <label for="edit-place">촬영 장소명</label>
+        <input id="edit-place" maxlength="30">
+        <div class="mp-dialog-actions">
+          <button value="cancel" class="button secondary small">취소</button>
+          <button value="save" class="button small">저장</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="mp-toast" role="status" hidden></div>
+  </main>
+
+  <footer id="site-footer"></footer>
+</body>
+</html>
