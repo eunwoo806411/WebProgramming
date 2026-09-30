@@ -28,7 +28,7 @@ test('사용자별 좋아요 분리 및 조회와 미연결 계약',async()=>{
  assert.deepEqual(await api.getUserLikedPhotoIds('other'),[p.id]);assert.deepEqual(await api.getUserLikedPhotoIds('demo-user'),[]);
  await api.signInDemo();assert.deepEqual(await api.getUserLikedPhotoIds('demo-user'),[]);
  await assert.rejects(api.setPhotoLiked('missing',true),{code:'PHOTO_NOT_FOUND'});
- assert.equal(await api.getPhoto('missing'),null);await assert.rejects(api.createPhoto({}),{code:'NOT_IMPLEMENTED'});
+ assert.equal(await api.getPhoto('missing'),null);await assert.rejects(api.createPhoto({}),{code:'INVALID_INPUT'});
  assert.equal((await api.listUserPhotos('demo-user')).status,'not-connected');
 });
 test('한국 시간은 호스트 시간대와 무관하고 무효 날짜를 거부한다',()=>{
