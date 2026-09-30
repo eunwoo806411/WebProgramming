@@ -26,7 +26,7 @@ python3 -m http.server 8001 --bind 127.0.0.1
 | 담당 | 수정할 파일 | 현재 상태 / 후속 작업 |
 |---|---|---|
 | 로그인 | `pages/login/index.html`, `login.css`, `login.js` | 기본 입력 영역과 데모 입장. 실제 인증 서버 연결 필요 |
-| 사진 등록 | `pages/upload/index.html`, `upload.css`, `upload.js` | 입력 폼과 데이터 추출. 위치 선택·파일 업로드 연결 필요 |
+| 사진 등록 | `pages/upload/*` | 지도 위치 선택·사진 미리보기·등록 구현. 저장은 브라우저(데모) |
 | 메인 | `pages/main/index.html`, `main.css`, `main.js`, `map.js`, `clusters.js`, `time-controls.js` | 실제 지도, 썸네일 묶음, 상세, 좋아요, 시간 필터 구현 |
 | 마이페이지 | `pages/mypage/index.html`, `mypage.css`, `mypage.js` | 탭·목록 영역·사용자 ID 기반 조회 연결 지점. 조회 구현 필요 |
 | 전체 사진 | `pages/explore/index.html`, `explore.css`, `explore.js` | 정렬 선택·카드 영역·상세 연결 지점. 목록 조회 연결 필요 |
@@ -74,7 +74,7 @@ const user = { id: 'demo-user', isDemo: true };
 | `getPhoto(id)` | Photo 또는 null |
 | `getUserLikedPhotoIds(userId)` | 사용자별 좋아요 사진 ID 배열 |
 | `setPhotoLiked(photoId, liked)` | `{photo, liked}`. 로그인 필요, 중복 증가 방지 |
-| `createPhoto(input)` | 현재 `NOT_IMPLEMENTED` 오류. 서버 저장 연결 지점 |
+| `createPhoto(input)` | 로그인 필요. 이미지를 긴 변 900px JPEG로 줄여 이 브라우저에 저장하고 생성된 Photo 반환. 서버 연결 시 교체 |
 | `listUserPhotos(userId)` | 현재 `{status:'not-connected',userId,items:[]}` |
 | `listUserLikedPhotos(userId)` | 현재 `{status:'not-connected',userId,items:[]}` |
 
@@ -99,7 +99,7 @@ if (user && photos.length) await setPhotoLiked(photos[0].id, true);
 { imageFile, latitude, longitude, placeName, description, capturedAt }
 ```
 
-`requestLocationSelection()`에서 선택 결과를 위도·경도 입력에 연결하고 `submitUpload(input)`에서 공통 등록 함수를 호출하세요. 파일 선택은 서버 업로드가 아닙니다. 현재 등록 버튼은 성공 메시지 대신 미연결 안내를 보여줍니다.
+지도 선택 결과는 위도·경도 입력에 자동 반영되고, `submitUpload(input)`이 `createPhoto`를 호출합니다. 등록한 사진은 별도 키 `soongsil-one-frame-uploads-v1`에 저장되어 `listPhotos`·`getPhoto`에 샘플과 함께 나옵니다(`isDemo:false`). 서버 연결 시 `upload-store.js`·`image-encode.js`는 필요 없어집니다. 자세한 내용은 `pages/upload/README.md`.
 
 `mypage.js`의 `loadMyPhotos(tab)`은 현재 사용자 ID를 조회 함수로 전달합니다. 담당자는 공통 조회 결과를 `{status:'ready', items: Photo[]}`로 반환하도록 연결하면 됩니다. 미로그인·미연결·연결 후 빈 결과는 서로 구분됩니다.
 
