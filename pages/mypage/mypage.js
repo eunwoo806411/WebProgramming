@@ -114,23 +114,48 @@ function renderMap() {
   empty.textContent = status.mine === 'ready' ? '아직 지도에 남긴 사진이 없어요. 첫 한 장을 남겨보세요.' : emptyText('mine');
 }
 
-/* ---------- 첫 화면: 활동 히트맵 ---------- */
+/* ---------- 첫 화면: 활동 히트맵 ----------
+   카드 너비에 따라 보여줄 주(week) 수를 정해요. 넓으면 최대 52주(1년), 좁으면 최소 12주. */
 function renderHeatmap() {
-  const WEEKS = 20;
+  const box = $('#heatmap');
+  const width = box.clientWidth || 600;
+  const WEEKS = Math.max(12, Math.min(52, Math.floor((width - 22) / 26)));
+  box.style.setProperty('--weeks', WEEKS);
+  $('#heatmap-months').style.setProperty('--weeks', WEEKS);
+
   const perDay = {};
   myPhotos.forEach((p) => { const k = timeOf(p).toDateString(); perDay[k] = (perDay[k] || 0) + 1; });
   const start = new Date(today);
-  start.setDate(today.getDate() - ((today.getDay() + 6) % 7) - (WEEKS - 1) * 7); // 20주 전 월요일
-  const cells = []; let activeDays = 0;
-  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
-    const n = perDay[d.toDateString()] || 0; if (n) activeDays++;
-    const c = document.createElement('div'); c.className = `l${Math.min(n, 4)}`;
-    c.title = `${fmtDate(d)} · ${n ? n + '장 기록' : '기록 없음'}`;
-    cells.push(c);
+  start.setDate(today.getDate() - ((today.getDay() + 6) % 7) - (WEEKS - 1) * 7); // WEEKS주 전 월요일
+
+  // 요일 라벨 (첫 번째 열)
+  const cells = ['월', '', '수', '', '금', '', ''].map((t) => {
+    const d = document.createElement('div'); d.className = 'day'; d.textContent = t; return d;
+  });
+  // 월 라벨: 그 주에 새 달이 시작되면 표시
+  const months = [document.createElement('span')];
+  let activeDays = 0, lastMonth = -1;
+  for (let w = 0; w < WEEKS; w++) {
+    const weekStart = new Date(start); weekStart.setDate(start.getDate() + w * 7);
+    const m = document.createElement('span');
+    if (weekStart.getMonth() !== lastMonth) { m.textContent = `${weekStart.getMonth() + 1}월`; lastMonth = weekStart.getMonth(); }
+    months.push(m);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+      const c = document.createElement('div');
+      if (d > today) { c.className = 'cell'; cells.push(c); continue; } // 아직 안 온 날은 빈칸
+      const n = perDay[d.toDateString()] || 0; if (n) activeDays++;
+      c.className = `cell l${Math.min(n, 4)}`;
+      c.title = `${fmtDate(d)} · ${n ? n + '장 기록' : '기록 없음'}`;
+      cells.push(c);
+    }
   }
-  $('#heatmap').replaceChildren(...cells);
+  box.replaceChildren(...cells);
+  $('#heatmap-months').replaceChildren(...months);
   $('#heatmap-summary').textContent = `최근 ${WEEKS}주 중 ${activeDays}일 기록`;
 }
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderHeatmap, 150); });
 
 /* ---------- 내 사진 관리 (수정/삭제) ---------- */
 function renderMyPhotos() {
@@ -229,7 +254,7 @@ function route() {
   const key = VIEWS[location.hash.slice(1)] ?? 'home';
   document.querySelectorAll('.mp-view').forEach((v) => (v.hidden = v.id !== `view-${key}`));
   if (key === 'account') $('#nickname-input').value = user?.nickname ?? user?.name ?? '';
-  if (key === 'home' && photoMap) requestAnimationFrame(renderMap); // 숨겨졌던 지도 다시 그리기
+  if (key === 'home' && photoMap) requestAnimationFrame(() => { renderMap(); renderHeatmap(); }); // 숨겨졌던 화면 다시 그리기
   window.scrollTo(0, 0);
 }
 function refreshAll() { renderProfile(); renderMap(); renderHeatmap(); renderMyPhotos(); renderLiked(); renderStats(); }

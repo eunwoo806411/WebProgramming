@@ -43,11 +43,16 @@
 .mp-map-shell #map { height: 420px; }
 .mp-map-empty { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500; background: #fffef5ed; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #394f3e; box-shadow: 0 2px 8px #0001; white-space: nowrap; }
 
-/* 히트맵 */
-.mp-heatmap-wrap { display: flex; gap: 6px; overflow-x: auto; }
-.mp-heatmap-days { display: grid; grid-template-rows: repeat(7, 13px); gap: 3px; font-size: 9px; color: var(--mp-muted); }
-.mp-heatmap { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 13px); grid-auto-columns: 13px; gap: 3px; }
-.mp-heatmap div { border-radius: 3px; }
+/* 히트맵: 카드 너비에 맞춰 칸 크기가 늘어나요 (--weeks는 JS가 정함) */
+.mp-heatmap, .mp-heatmap-months {
+  display: grid; gap: 4px;
+  grid-template-columns: 22px repeat(var(--weeks, 20), minmax(0, 1fr));
+}
+.mp-heatmap { grid-auto-flow: column; grid-template-rows: repeat(7, auto); }
+.mp-heatmap .cell { aspect-ratio: 1; border-radius: 4px; }
+.mp-heatmap .day { font-size: 10px; color: var(--mp-muted); display: flex; align-items: center; }
+.mp-heatmap-months { margin-bottom: 6px; font-size: 10px; color: var(--mp-muted); }
+.mp-heatmap-months span { white-space: nowrap; }
 .l0 { background: var(--mp-h0); } .l1 { background: var(--mp-h1); } .l2 { background: var(--mp-h2); } .l3 { background: var(--mp-h3); } .l4 { background: var(--mp-h4); }
 .mp-heatmap-legend { display: flex; align-items: center; justify-content: flex-end; gap: 3px; margin-top: 12px; }
 .mp-heatmap-legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
