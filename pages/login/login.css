@@ -1,1 +1,461 @@
-.login-layout{display:grid;grid-template-columns:1.1fr 1fr;max-width:1040px;margin:24px auto;gap:85px;align-items:center}.login-intro h1{font-size:45px;line-height:1.4}.login-intro h1 span{color:#62844b}.login-intro>p{color:var(--muted)}.login-panel{padding:32px}.login-panel h2{font-size:23px}.login-panel>.notice{margin:18px 0}.login-panel .field{gap:7px}.dev-login{border-top:1px solid var(--line);margin-top:22px;padding-top:22px}.dev-login p{font-size:12px;color:var(--muted);margin:10px 0 15px}.illustration{height:220px;margin:30px 0;position:relative;overflow:hidden;border-radius:90px 90px 20px 20px;background:#e4ebd6}.illustration:after{content:'';position:absolute;background:#aac18f;border-radius:50%;width:550px;height:170px;bottom:-95px;left:-50px}.sun{position:absolute;width:55px;height:55px;border-radius:50%;background:#e9d99f;top:32px;right:50px}.building{position:absolute;left:22%;bottom:25px;width:50%;height:118px;background:repeating-linear-gradient(0deg,#f6f8ee 0px,#f6f8ee 18px,#8aa17c 19px,#8aa17c 25px);border:12px solid #f6f8ee;text-align:center;padding-top:9px;font-size:10px;letter-spacing:3px}.photo-stamp{position:absolute;right:12px;bottom:14px;background:white;transform:rotate(-5deg);padding:11px;font-size:10px;z-index:1}.caption{font-size:12px}.login-panel #login-status:empty{display:none}
+/* 전체 로그인 페이지 */
+
+.login-page {
+    min-height: calc(100vh - 70px);
+    background: #f4f7fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 45px 25px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 1150px;
+    min-height: 650px;
+
+    display: grid;
+    grid-template-columns: 1.08fr 0.92fr;
+
+    background: white;
+
+    border-radius: 26px;
+    overflow: hidden;
+
+    box-shadow: 0 20px 60px rgba(18, 43, 75, 0.12);
+}
+
+
+/* =========================
+   왼쪽 캠퍼스 영역
+========================= */
+
+.campus-side {
+    position: relative;
+
+    background-image: url('./campus.jpg');
+    background-size: cover;
+    background-position: center;
+
+    min-height: 650px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    padding: 55px;
+
+    color: white;
+}
+
+.campus-overlay {
+    position: absolute;
+    inset: 0;
+
+    background: linear-gradient(
+        180deg,
+        rgba(5, 35, 75, 0.22),
+        rgba(5, 31, 67, 0.80)
+    );
+}
+
+.campus-content {
+    position: relative;
+    z-index: 2;
+
+    margin-top: 70px;
+}
+
+.campus-small {
+    margin-bottom: 18px;
+
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+
+    opacity: 0.85;
+}
+
+.campus-content h1 {
+    margin: 0 0 25px;
+
+    font-size: 23px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.campus-title {
+    margin: 0;
+
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -1px;
+}
+
+.campus-description {
+    margin-top: 25px;
+
+    font-size: 15px;
+    line-height: 1.8;
+
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.campus-bottom {
+    position: relative;
+    z-index: 2;
+
+    font-size: 10px;
+    letter-spacing: 2px;
+
+    opacity: 0.75;
+}
+
+
+/* =========================
+   오른쪽 로그인 영역
+========================= */
+
+.login-side {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 55px;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 390px;
+}
+
+
+/* 브랜드 */
+
+.brand {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    margin-bottom: 55px;
+}
+
+.brand-mark {
+    width: 45px;
+    height: 45px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 13px;
+
+    background: #063b78;
+
+    color: white;
+
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.brand > div:last-child {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand strong {
+    font-size: 17px;
+
+    color: #14243a;
+}
+
+.brand span {
+    margin-top: 3px;
+
+    font-size: 8px;
+    letter-spacing: 1.2px;
+
+    color: #8b98a8;
+}
+
+
+/* 제목 */
+
+.login-heading {
+    margin-bottom: 32px;
+}
+
+.welcome {
+    margin: 0 0 10px;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+
+    color: #1a65ad;
+}
+
+.login-heading h2 {
+    margin: 0 0 10px;
+
+    font-size: 28px;
+    letter-spacing: -0.8px;
+
+    color: #15253b;
+}
+
+.login-heading > p:last-child {
+    margin: 0;
+
+    font-size: 14px;
+
+    color: #8792a2;
+}
+
+
+/* =========================
+   로그인 입력 영역
+========================= */
+
+#login-form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 18px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.field span {
+    font-size: 13px;
+    font-weight: 600;
+
+    color: #3d4b5e;
+}
+
+.field input {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 14px 15px;
+
+    border: 1px solid #dce3eb;
+    border-radius: 10px;
+
+    background: #f9fbfd;
+
+    font-size: 14px;
+
+    outline: none;
+
+    transition: 0.2s;
+}
+
+.field input::placeholder {
+    color: #a9b2bd;
+}
+
+.field input:focus {
+    background: white;
+
+    border-color: #1d62a5;
+
+    box-shadow: 0 0 0 3px rgba(29, 98, 165, 0.09);
+}
+
+
+/* 로그인 버튼 */
+
+.main-login {
+    margin-top: 7px;
+
+    width: 100%;
+
+    padding: 15px;
+
+    border: none;
+    border-radius: 10px;
+
+    background: #063b78;
+
+    color: white;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.main-login:hover {
+    background: #052f60;
+
+    transform: translateY(-1px);
+}
+
+.main-login:active {
+    transform: translateY(0);
+}
+
+
+/* =========================
+   OR 구분선
+========================= */
+
+.divider {
+    display: flex;
+    align-items: center;
+
+    gap: 15px;
+
+    margin: 26px 0;
+
+    color: #a1aab5;
+
+    font-size: 9px;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+
+    flex: 1;
+
+    height: 1px;
+
+    background: #e4e9ef;
+}
+
+
+/* =========================
+   로그인 없이 둘러보기
+========================= */
+
+.browse-button {
+    width: 100%;
+
+    padding: 14px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border: 1px solid #dce3eb;
+    border-radius: 10px;
+
+    background: white;
+
+    color: #455468;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+.browse-button:hover {
+    border-color: #1d62a5;
+
+    color: #0b4b8b;
+
+    background: #f7faff;
+}
+
+.browse-button span {
+    font-size: 16px;
+}
+
+
+/* =========================
+   로그인 상태 / 오류 메시지
+========================= */
+
+#login-status {
+    margin-top: 15px;
+
+    min-height: 18px;
+
+    text-align: center;
+
+    color: #d84c4c;
+
+    font-size: 12px;
+}
+
+#login-status:empty {
+    display: none;
+}
+
+
+/* =========================
+   하단 문구
+========================= */
+
+.login-footer {
+    margin-top: 38px;
+
+    text-align: center;
+
+    color: #b0b8c2;
+
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+
+/* =========================
+   모바일
+========================= */
+
+@media (max-width: 850px) {
+
+    .login-page {
+        padding: 20px;
+    }
+
+    .login-container {
+        grid-template-columns: 1fr;
+    }
+
+    .campus-side {
+        min-height: 330px;
+
+        padding: 35px;
+    }
+
+    .campus-content {
+        margin-top: 25px;
+    }
+
+    .campus-title {
+        font-size: 32px;
+    }
+
+    .campus-description {
+        display: none;
+    }
+
+    .login-side {
+        padding: 40px 30px;
+    }
+
+    .brand {
+        margin-bottom: 35px;
+    }
+
+    .login-heading h2 {
+        font-size: 24px;
+    }
+}
