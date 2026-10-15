@@ -94,7 +94,41 @@ function renderProfile() {
   $('#dept').textContent = user ? (user.dept ?? user.department ?? '') : '로그인 후 내 기록을 볼 수 있어요';
   $('#cnt-upload').textContent = myPhotos.length;
   $('#cnt-like').textContent = myPhotos.reduce((s, p) => s + likesOf(p), 0);
+  renderGrade();
 }
+
+/* ---------- 닉네임 옆 등급 + 등급 안내 팝업 ---------- */
+function renderGrade() {
+  const n = myPhotos.length, g = gradeOf(n);
+  const badge = $('#profile-grade');
+  // 로그인했으면 항상 표시 (사진이 0장이거나 목록이 아직 연결 전이면 '등급 없음')
+  badge.hidden = !user;
+  const none = n < GRADES[0][0];
+  badge.classList.toggle('mp-grade-none', none);
+  badge.textContent = none ? '🥚 아직 등급 없음' : g.name;
+
+  // 팝업 속 등급 목록: 지난 등급 / 현재 등급 / 남은 등급 구분
+  let cur = -1; GRADES.forEach(([min], i) => { if (n >= min) cur = i; });
+  $('#grade-list').innerHTML = GRADES.map(([min, name], i) => `
+    <li class="${i < cur ? 'done' : i === cur ? 'current' : 'todo'}">
+      <span>${name}</span>
+      <span class="mp-grade-min">${i === cur ? '현재 등급' : `${min}장~`}</span>
+    </li>`).join('');
+
+  const next = GRADES[cur + 1];
+  const from = cur >= 0 ? GRADES[cur][0] : 0;
+  $('#grade-bar-fill').style.width = next ? `${Math.max(4, ((n - from) / (next[0] - from)) * 100)}%` : '100%';
+  $('#grade-progress-text').textContent = next ? `${next[1]}까지 ${next[0] - n}장 남았어요` : `${n}장 달성 · 최고 등급이에요 🎉`;
+}
+function toggleGradePop(open) {
+  const pop = $('#grade-pop'), btn = $('#grade-btn');
+  const show = open ?? pop.hidden;
+  pop.hidden = !show; btn.setAttribute('aria-expanded', String(show));
+}
+$('#grade-btn').onclick = (e) => { e.stopPropagation(); toggleGradePop(); };
+$('#grade-close').onclick = () => { toggleGradePop(false); $('#grade-btn').focus(); };
+document.addEventListener('click', (e) => { if (!e.target.closest('.mp-grade-wrap')) toggleGradePop(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#grade-pop').hidden) { toggleGradePop(false); $('#grade-btn').focus(); } });
 
 /* ---------- 첫 화면: 발자취 지도 (메인 지도 재사용) ---------- */
 function renderMap() {
@@ -238,14 +272,85 @@ function renderStats() {
   }));
 }
 
-/* ---------- 계정 수정 ---------- */
+/* ---------- 내 정보 확인 (본인 확인 → 정보 보기 → 항목별 수정) ---------- */
+// 본인 확인 상태는 이 화면을 벗어나면 초기화돼요.
+let accountVerified = false;
+
+// 회원 등급: 올린 사진 장수로 계산 (재미 요소 · 기능 차이는 없음)
+const GRADES = [
+  [1, '🌱 첫 셔터'], [5, '📸 캠퍼스 스냅러'], [10, '🎞️ 숭실 필름러'], [20, '🖼️ 숭실 사진가'],
+  [30, '📚 숭실 기록가'], [40, '🗂️ 숭실 큐레이터'], [50, '🏛️ 숭실 아키비스트'],
+];
+function gradeOf(n) {
+  if (n < GRADES[0][0]) return { name: '아직 등급이 없어요', next: '첫 사진을 올리면 🌱 첫 셔터!' };
+  let i = 0; while (i + 1 < GRADES.length && n >= GRADES[i + 1][0]) i++;
+  const next = GRADES[i + 1];
+  return { name: GRADES[i][1], next: next ? `다음 등급까지 ${next[0] - n}장` : '최고 등급이에요 🎉' };
+}
+
+function renderAccountInfo() {
+  $('#info-id').textContent = user?.loginId ?? user?.username ?? user?.email ?? user?.id ?? '-';
+  $('#info-nickname').textContent = user?.nickname ?? user?.name ?? '-';
+  const joined = user?.createdAt ?? user?.joinedAt;
+  $('#info-joined').textContent = joined ? fmtDate(new Date(joined)) : '정보 없음';
+  const g = gradeOf(myPhotos.length);
+  $('#info-grade').textContent = g.name; $('#info-grade-next').textContent = g.next;
+}
+function closeInlineForms() {
+  ['#account-form', '#password-form'].forEach((id) => { $(id).hidden = true; $(id).reset(); });
+  $('#password-error').hidden = true;
+}
+function showAccountStep() {
+  $('#verify-form').hidden = accountVerified;
+  $('#account-edit').hidden = !accountVerified;
+  $('#verify-error').hidden = true;
+  closeInlineForms();
+  if (accountVerified) renderAccountInfo(); else $('#verify-password').value = '';
+}
+function showError(id, msg) { const e = $(id); e.textContent = msg; e.hidden = false; }
+
+$('#verify-form').onsubmit = async (e) => {
+  e.preventDefault();
+  if (!user) { toast('로그인이 필요해요'); return; }
+  const pw = $('#verify-password').value;
+  if (typeof service.verifyPassword !== 'function') {
+    // 아직 서버 연결 전: 화면 흐름 확인용으로 다음 단계로 넘어가요.
+    toast('verifyPassword 함수 연결 예정 · 데모로 다음 단계로 넘어가요');
+  } else {
+    try {
+      if (!(await service.verifyPassword(user.id, pw))) { showError('#verify-error', '비밀번호가 맞지 않아요.'); return; }
+    } catch (err) { console.error(err); showError('#verify-error', '확인 중 문제가 생겼어요.'); return; }
+  }
+  accountVerified = true; showAccountStep();
+};
+
+// '닉네임 수정' / '비밀번호 수정' 버튼 → 해당 줄 아래에 입력 칸 펼치기
+document.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => {
+  const form = b.dataset.edit === 'nickname' ? '#account-form' : '#password-form';
+  const wasOpen = !$(form).hidden;
+  closeInlineForms();
+  if (wasOpen) return;
+  $(form).hidden = false;
+  if (b.dataset.edit === 'nickname') $('#nickname-input').value = user?.nickname ?? '';
+  $(form).querySelector('input').focus();
+}));
+document.querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = closeInlineForms));
+
 $('#account-form').onsubmit = async (e) => {
   e.preventDefault();
   const v = $('#nickname-input').value.trim();
   if (v.length < 2) { toast('닉네임은 2자 이상이어야 해요'); return; }
-  if (!user) { toast('로그인이 필요해요'); return; }
   if (!(await callService('updateNickname', user.id, v))) return;
-  user.nickname = v; renderProfile(); toast('닉네임을 저장했어요'); location.hash = '';
+  user.nickname = v; renderProfile(); renderAccountInfo(); closeInlineForms(); toast('닉네임을 저장했어요');
+};
+
+$('#password-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const a = $('#new-password').value, b = $('#new-password-check').value;
+  if (a.length < 8 || !/[A-Za-z]/.test(a) || !/[0-9]/.test(a)) { showError('#password-error', '영문과 숫자를 섞어 8자 이상 입력해 주세요.'); return; }
+  if (a !== b) { showError('#password-error', '새 비밀번호가 서로 달라요.'); return; }
+  if (!(await callService('changePassword', user.id, a))) return;
+  closeInlineForms(); toast('비밀번호를 변경했어요');
 };
 
 /* ---------- 화면 전환 (#account, #my-photos ...) ---------- */
@@ -253,7 +358,8 @@ const VIEWS = { '': 'home', account: 'account', 'my-photos': 'my-photos', liked:
 function route() {
   const key = VIEWS[location.hash.slice(1)] ?? 'home';
   document.querySelectorAll('.mp-view').forEach((v) => (v.hidden = v.id !== `view-${key}`));
-  if (key === 'account') $('#nickname-input').value = user?.nickname ?? user?.name ?? '';
+  if (key !== 'account') accountVerified = false; // 계정 화면을 나가면 다시 확인받기
+  if (key === 'account') showAccountStep();
   if (key === 'home' && photoMap) requestAnimationFrame(() => { renderMap(); renderHeatmap(); }); // 숨겨졌던 화면 다시 그리기
   window.scrollTo(0, 0);
 }
