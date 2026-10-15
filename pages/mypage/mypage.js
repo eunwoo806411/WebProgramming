@@ -243,13 +243,40 @@ function bars(entries) {
       <b>${v}</b>
     </div>`).join('');
 }
+/* 등급 달성 기록: 올린 순서대로 N번째 사진을 올린 날 = 그 등급을 딴 날 */
+const uploadedAt = (p) => new Date(p.createdAt ?? p.uploadedAt ?? timeOf(p));
+function renderGradeHistory() {
+  const list = [...myPhotos].sort((a, b) => uploadedAt(a) - uploadedAt(b));
+  const n = list.length;
+  const got = GRADES.filter(([min]) => n >= min).length;
+  $('#stat-grade-sub').textContent = `${GRADES.length}단계 중 ${got}단계 달성`;
+  $('#stat-grades').innerHTML = GRADES.map(([min, name], i) => {
+    if (n >= min) {
+      return `<li class="done"><span class="mp-tl-dot"></span><div><b>${name}</b><small>${min}번째 사진 · ${fmtDate(uploadedAt(list[min - 1]))} 달성</small></div></li>`;
+    }
+    if (i === got) {
+      return `<li class="next"><span class="mp-tl-dot"></span><div><b>${name}</b><small>다음 목표 · ${min - n}장 남음</small></div></li>`;
+    }
+    return `<li class="todo"><span class="mp-tl-dot"></span><div><b>${name}</b><small>${min}장</small></div></li>`;
+  }).join('');
+}
+
+// '현재 등급' 칸: 이모지와 칭호를 나눠서 깔끔하게 표시
+function gradeTile() {
+  const n = myPhotos.length;
+  if (n < GRADES[0][0]) return `<div class="mp-stat"><span>현재 등급</span><div class="mp-stat-grade"><i>🥚</i><b>아직 없음</b></div></div>`;
+  const [icon, ...rest] = gradeOf(n).name.split(' ');
+  return `<div class="mp-stat"><span>현재 등급</span><div class="mp-stat-grade"><i>${icon}</i><b>${rest.join(' ')}</b></div></div>`;
+}
+
 function renderStats() {
   const totalLikes = myPhotos.reduce((s, p) => s + likesOf(p), 0);
   $('#stat-tiles').innerHTML = [
     ['총 업로드', `${myPhotos.length}장`],
     ['받은 좋아요', totalLikes],
-    ['사진당 평균 좋아요', myPhotos.length ? (totalLikes / myPhotos.length).toFixed(1) : 0],
-  ].map(([k, v]) => `<div class="mp-stat"><span>${k}</span><strong>${v}</strong></div>`).join('');
+  ].map(([k, v]) => `<div class="mp-stat"><span>${k}</span><strong>${v}</strong></div>`).join('')
+    + gradeTile();
+  renderGradeHistory();
 
   const none = `<p class="mp-muted">${emptyText('mine')}</p>`;
   const byPlace = {}; myPhotos.forEach((p) => (byPlace[placeOf(p)] = (byPlace[placeOf(p)] || 0) + 1));
