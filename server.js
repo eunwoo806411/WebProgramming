@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CONFIG } from './shared/js/config.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const STORAGE_DIR = process.env.STORAGE_DIR || path.join(ROOT, 'storage');
@@ -224,6 +225,10 @@ app.post('/api/photos', requireLogin('사진 등록은 로그인 후 사용할 �
 
     if (!okCoord(b.latitude, 90) || !okCoord(b.longitude, 180) || !placeName || !description || !Number.isFinite(captured)) {
         return bad('등록 정보를 확인해 주세요.');
+    }
+    const [[south, west], [north, east]] = CONFIG.map.maxBounds;
+    if (b.latitude < south || b.latitude > north || b.longitude < west || b.longitude > east) {
+        return bad('숭실대 캠퍼스 지도 범위 안의 위치를 선택해 주세요.');
     }
     if (typeof b.imageData !== 'string' || !b.imageData.startsWith(JPEG_PREFIX)) {
         return bad('사진 형식이 올바르지 않아요.');

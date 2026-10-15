@@ -2,6 +2,7 @@
 import {mockPhotos} from '../../data/mock-photos.js';
 import {filterPhotos, sortPhotos} from './photo-query.js';
 import {encodeImageFile} from './image-encode.js';
+import {CONFIG} from './config.js';
 
 const error = (code, message) => Object.assign(new Error(message), {code});
 
@@ -40,7 +41,10 @@ export function createServerAdapter({encodeImage = encodeImageFile} = {}) {
     try {
       const {user} = await api('/api/me');
       return {id: user.id, isDemo: false};
-    } catch { return null; }
+    } catch (e) {
+      if (e.code === 'AUTH_REQUIRED') return null;
+      throw e;
+    }
   }
 
   return {
@@ -48,7 +52,7 @@ export function createServerAdapter({encodeImage = encodeImageFile} = {}) {
     // 실제 로그인(/api/login)은 login.js에서 이미 끝난 상태라, 서버 세션의 사용자를 그대로 반환합니다.
     async signInDemo() { return getCurrentUser(); },
     async signOut() {
-      try { await api('/api/logout', {method: 'POST'}); } catch { /* 이미 로그아웃 */ }
+      await api('/api/logout', {method: 'POST'});
     },
     async listPhotos(query = {}) {
       const {photos} = await loadAll();
@@ -79,6 +83,10 @@ export function createServerAdapter({encodeImage = encodeImageFile} = {}) {
       const okCoord = (v, max) => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= max;
       if (!imageFile || !okCoord(latitude, 90) || !okCoord(longitude, 180) || !placeName || !description || !Number.isFinite(captured)) {
         throw error('INVALID_INPUT', '등록 정보를 확인해 주세요.');
+      }
+      const [[south, west], [north, east]] = CONFIG.map.maxBounds;
+      if (latitude < south || latitude > north || longitude < west || longitude > east) {
+        throw error('INVALID_INPUT', '숭실대 캠퍼스 지도 범위 안의 위치를 선택해 주세요.');
       }
       if (!await getCurrentUser()) throw error('AUTH_REQUIRED', '사진 등록은 로그인 후 사용할 수 있어요.');
       const imageData = await encodeImage(imageFile);
