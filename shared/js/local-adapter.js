@@ -24,7 +24,7 @@ export function createLocalAdapter(storage,{encodeImage=encodeImageFile}={}) {
   function decorate(photo,state) { return {...photo,likeCount:photo.likeCount+Object.values(state.likedByUser).filter(ids=>ids.includes(photo.id)).length}; }
   return {
     async getCurrentUser(){return read().currentUser;},
-    async signInDemo(){const s=read();s.currentUser={id:'demo-user',isDemo:true};save(s);return s.currentUser;},
+    async signInDemo(id='demo-user'){const s=read();s.currentUser={id,isDemo:true};save(s);return s.currentUser;},
     async signOut(){const s=read();if(!s.currentUser)return;s.currentUser=null;save(s);},
     async listPhotos(query={}){const s=read();return sortPhotos(filterPhotos(allPhotos().map(p=>decorate(p,s)),query),query.order);},
     async getPhoto(id){const p=allPhotos().find(p=>p.id===id);return p?decorate(p,read()):null;},
@@ -45,7 +45,7 @@ export function createLocalAdapter(storage,{encodeImage=encodeImageFile}={}) {
       const photo={id:`upload-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`,authorId:s.currentUser.id,imageUrl:await encodeImage(imageFile),latitude,longitude,placeName,description,capturedAt:new Date(captured).toISOString(),uploadedAt:new Date().toISOString(),likeCount:0,isDemo:false};
       appendUpload(storage,photo);return {...photo};
     },
-    async listUserPhotos(userId){return {status:'not-connected',userId,items:[]};},
-    async listUserLikedPhotos(userId){return {status:'not-connected',userId,items:[]};}
+        async listUserPhotos(userId){const s=read();return {status:'ready',userId,items:allPhotos().filter(p=>p.authorId===userId).map(p=>decorate(p,s))};},
+        async listUserLikedPhotos(userId){const s=read();const ids=Object.hasOwn(s.likedByUser,userId)?s.likedByUser[userId]:[];return {status:'ready',userId,items:ids.map(id=>allPhotos().find(p=>p.id===id)).filter(Boolean).map(p=>decorate(p,s))};}
   };
 }

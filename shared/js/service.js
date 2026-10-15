@@ -1,5 +1,4 @@
-// Server integration replaces this adapter; pages do not access storage directly.
-import {createLocalAdapter} from './local-adapter.js';
-const storage={getItem:key=>localStorage.getItem(key),setItem:(key,value)=>localStorage.setItem(key,value)};
-const adapter=createLocalAdapter(storage);
+// 페이지는 이 파일만 통해 데이터에 접근합니다. 저장은 서버(Express + SQLite)가 담당합니다.
+import {createServerAdapter} from './server-adapter.js';
+const adapter=createServerAdapter();
 export const {getCurrentUser,signInDemo,signOut,listPhotos,getPhoto,createPhoto,setPhotoLiked,getUserLikedPhotoIds,listUserPhotos,listUserLikedPhotos}=adapter;

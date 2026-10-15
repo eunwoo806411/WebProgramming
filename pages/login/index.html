@@ -1,177 +1,143 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>로그인 · 숭실 한 장</title>
 
     <link rel="icon" href="../../shared/assets/fallback.svg" type="image/svg+xml">
     <link rel="stylesheet" href="../../shared/css/common.css">
     <link rel="stylesheet" href="./login.css">
-
     <script type="module" src="./login.js"></script>
 </head>
 
+<body class="login-screen">
+    <header id="site-header"></header>
 
-<body>
+    <main class="login-page">
+        <div class="login-container">
+            <!-- 왼쪽 캠퍼스 사진 -->
+            <section class="campus-side">
+                <div class="campus-overlay"></div>
 
-<header id="site-header"></header>
+                <div class="campus-content">
+                    <p class="campus-small">SOONGSIL UNIVERSITY</p>
+                    <h1>숭실 한 장</h1>
 
-
-<main class="login-page">
-
-    <div class="login-container">
-
-        <!-- 왼쪽 캠퍼스 사진 -->
-        <section class="campus-side">
-
-            <div class="campus-overlay"></div>
-
-            <div class="campus-content">
-
-                <p class="campus-small">
-                    SOONGSIL UNIVERSITY
-                </p>
-
-                <h1>
-                    숭실 한 장
-                </h1>
-
-                <p class="campus-title">
-                    우리가 지나온 곳,<br>
-                    그날의 숭실.
-                </p>
-
-                <p class="campus-description">
-                    매일 걷던 길도,<br>
-                    처음 만난 계절도.<br>
-                    우리의 순간을 한 장씩 남겨보세요.
-                </p>
-
-            </div>
-
-            <div class="campus-bottom">
-                SSU · ONE MOMENT, ONE PHOTO
-            </div>
-
-        </section>
-
-
-        <!-- 오른쪽 로그인 -->
-        <section class="login-side">
-
-            <div class="login-box">
-
-                <div class="brand">
-
-                    <div class="brand-mark">
-                        SSU
-                    </div>
-
-                    <div>
-                        <strong>숭실 한 장</strong>
-                        <span>SOONGSIL PHOTO ARCHIVE</span>
-                    </div>
-
-                </div>
-
-
-                <div class="login-heading">
-
-                    <p class="welcome">
-                        WELCOME TO SOONGSIL HANJANG
+                    <p class="campus-title">
+                        우리가 지나온 곳,<br>
+                        그날의 숭실.
                     </p>
 
-                    <h2>
-                        숭실 한 장에 오신 것을 환영해요.
-                    </h2>
-
-                    <p>
-                        숭실의 오늘을 한 장씩 만나보세요.
+                    <p class="campus-description">
+                        매일 걷던 길도,<br>
+                        처음 만난 계절도.<br>
+                        우리의 순간을 한 장씩 남겨보세요.
                     </p>
 
+                    <ul class="campus-chips">
+                        <li>지도에서 발견</li>
+                        <li>사진 남기기</li>
+                        <li>나의 발자취</li>
+                    </ul>
                 </div>
 
+                <div class="campus-bottom">
+                    SSU · ONE MOMENT, ONE PHOTO
+                </div>
+            </section>
 
-                <form id="login-form">
+            <!-- 오른쪽 로그인 -->
+            <section class="login-side">
+                <div class="login-box">
+                    <div class="brand">
+                        <div class="brand-mark">SSU</div>
+                        <div>
+                            <strong>숭실 한 장</strong>
+                            <span>SOONGSIL PHOTO ARCHIVE</span>
+                        </div>
+                    </div>
 
-                    <label class="field">
+                    <div class="login-heading">
+                        <p class="welcome">WELCOME TO SOONGSIL HANJANG</p>
+                        <h2>숭실 한 장에 오신 것을 환영해요.</h2>
+                        <p>숭실대학교 통합로그인 계정으로 시작해보세요.</p>
+                    </div>
 
-                        <span>학번</span>
+                    <form id="login-form" novalidate>
+                        <label class="field">
+                            <span class="field-label">학번</span>
+                            <input
+                                id="student-id"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="8"
+                                placeholder="학번 8자리를 입력해주세요"
+                                autocomplete="username"
+                                autofocus
+                            >
+                        </label>
 
-                        <input
-                            id="student-id"
-                            type="text"
-                            placeholder="학번을 입력해주세요"
-                            autocomplete="username"
+                        <label class="field">
+                            <span class="field-label">비밀번호</span>
+                            <div class="input-wrap">
+                                <input
+                                    id="password"
+                                    type="password"
+                                    placeholder="유세인트 비밀번호"
+                                    autocomplete="current-password"
+                                >
+                                <button
+                                    id="toggle-password"
+                                    class="pw-toggle"
+                                    type="button"
+                                    aria-pressed="false"
+                                    aria-label="비밀번호 표시 전환"
+                                >보기</button>
+                            </div>
+                        </label>
+
+                        <button
+                            id="login-button"
+                            class="main-login"
+                            type="submit"
                         >
+                            <span class="btn-label">숭실대 계정으로 로그인</span>
+                            <span class="btn-spinner" aria-hidden="true"></span>
+                        </button>
+                    </form>
 
-                    </label>
+                    <p id="login-status" role="alert" aria-live="polite"></p>
 
+                    <div class="login-note">
+                        <span class="note-icon" aria-hidden="true">i</span>
+                        <p>
+                            숭실대학교 통합로그인(유세인트) 계정으로 로그인해요.
+                            입력한 비밀번호는 인증에만 사용되고 저장되지 않아요.
+                        </p>
+                    </div>
 
-                    <label class="field">
-
-                        <span>비밀번호</span>
-
-                        <input
-                            id="password"
-                            type="password"
-                            placeholder="비밀번호를 입력해주세요"
-                            autocomplete="current-password"
-                        >
-
-                    </label>
-
+                    <div class="divider">
+                        <span>OR</span>
+                    </div>
 
                     <button
-                        id="login-button"
-                        class="main-login"
-                        type="submit"
+                        id="browse"
+                        class="browse-button"
+                        type="button"
                     >
-                        숭실 한 장 로그인
+                        로그인 없이 둘러보기
+                        <span>→</span>
                     </button>
 
-                </form>
-
-
-                <div class="divider">
-                    <span>OR</span>
+                    <p class="login-footer">
+                        우리의 숭실을 한 장에 담다.
+                    </p>
                 </div>
+            </section>
+        </div>
+    </main>
 
-
-                <button
-                    id="browse"
-                    class="browse-button"
-                    type="button"
-                >
-                    로그인 없이 둘러보기
-                    <span>→</span>
-                </button>
-
-
-                <p
-                    id="login-status"
-                    role="status"
-                ></p>
-
-
-                <p class="login-footer">
-                    우리의 숭실을 한 장에 담다.
-                </p>
-
-            </div>
-
-        </section>
-
-    </div>
-
-</main>
-
-
-<footer id="site-footer"></footer>
-
+    <footer id="site-footer"></footer>
 </body>
-
 </html>
