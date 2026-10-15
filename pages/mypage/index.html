@@ -32,7 +32,25 @@
       <div class="mp-card mp-profile">
         <div class="mp-avatar" id="avatar">?</div>
         <div class="mp-profile-info">
-          <h2 id="nickname">닉네임</h2>
+          <div class="mp-name-row">
+            <h2 id="nickname">닉네임</h2>
+            <span class="mp-grade" id="profile-grade" hidden></span>
+            <div class="mp-grade-wrap">
+              <button type="button" class="mp-grade-btn" id="grade-btn" aria-expanded="false" aria-controls="grade-pop">ⓘ 등급 안내</button>
+              <div class="mp-grade-pop" id="grade-pop" role="dialog" aria-label="회원 등급 안내" hidden>
+                <div class="mp-grade-pop-head">
+                  <strong>회원 등급 안내</strong>
+                  <button type="button" class="mp-grade-close" id="grade-close" aria-label="닫기">×</button>
+                </div>
+                <p class="mp-muted mp-small">올린 사진 수에 따라 칭호가 바뀌어요.</p>
+                <ol class="mp-grade-list" id="grade-list"></ol>
+                <div class="mp-grade-progress">
+                  <div class="mp-grade-bar"><span id="grade-bar-fill"></span></div>
+                  <p class="mp-small" id="grade-progress-text"></p>
+                </div>
+              </div>
+            </div>
+          </div>
           <p class="mp-muted" id="dept"></p>
         </div>
         <ul class="mp-counts">
@@ -70,7 +88,7 @@
       <!-- 인스타 스타일 메뉴 -->
       <nav class="mp-card mp-menu" aria-label="마이페이지 메뉴">
         <p class="mp-menu-title">내 계정</p>
-        <a href="#account" class="mp-menu-item"><span>👤</span>계정 수정<em>›</em></a>
+        <a href="#account" class="mp-menu-item"><span>👤</span>내 정보 확인<em>›</em></a>
         <p class="mp-menu-title">내 활동</p>
         <a href="#my-photos" class="mp-menu-item"><span>🖼️</span>내 사진 관리<em>›</em></a>
         <a href="#liked" class="mp-menu-item"><span>♡</span>좋아요한 사진<em>›</em></a>
@@ -78,16 +96,77 @@
       </nav>
     </section>
 
-    <!-- ===== 계정 수정 ===== -->
+    <!-- ===== 내 정보 확인 (본인만 볼 수 있음) ===== -->
     <section class="mp-view" id="view-account" hidden>
       <a href="#" class="mp-back">‹ 마이페이지</a>
-      <h1 class="mp-view-title">계정 수정</h1>
-      <form class="mp-card mp-form" id="account-form">
-        <label for="nickname-input">닉네임</label>
-        <input id="nickname-input" maxlength="12" required>
-        <p class="mp-muted mp-small">2~12자. (수정 가능 항목은 팀 논의 후 추가 예정)</p>
-        <button type="submit" class="button">저장</button>
+      <h1 class="mp-view-title">내 정보 확인</h1>
+
+      <!-- 1단계: 본인 확인 -->
+      <form class="mp-card mp-form mp-verify" id="verify-form">
+        <div class="mp-lock" aria-hidden="true">🔒</div>
+        <h2>본인 확인</h2>
+        <p class="mp-muted mp-small">내 정보는 나만 볼 수 있어요. 비밀번호를 한 번 더 확인할게요.</p>
+        <label for="verify-password">현재 비밀번호</label>
+        <input id="verify-password" type="password" autocomplete="current-password" required>
+        <p class="mp-form-error" id="verify-error" role="alert" hidden></p>
+        <button type="submit" class="button">확인</button>
       </form>
+
+      <!-- 2단계: 내 정보 + 항목별 수정 -->
+      <div id="account-edit" class="mp-card mp-info" hidden>
+        <div class="mp-info-head">
+          <h2>내 계정 정보</h2>
+          <span class="mp-verified">✓ 본인 확인 완료</span>
+        </div>
+
+        <div class="mp-info-row">
+          <span class="mp-info-label">아이디</span>
+          <span class="mp-info-value" id="info-id">-</span>
+        </div>
+
+        <div class="mp-info-row">
+          <span class="mp-info-label">닉네임</span>
+          <span class="mp-info-value" id="info-nickname">-</span>
+          <button type="button" class="button secondary small" data-edit="nickname">닉네임 수정</button>
+        </div>
+        <form class="mp-inline-form" id="account-form" hidden>
+          <label for="nickname-input">새 닉네임 <span class="mp-muted">(2~12자)</span></label>
+          <div class="mp-inline-row">
+            <input id="nickname-input" maxlength="12" required>
+            <button type="button" class="button secondary small" data-cancel>취소</button>
+            <button type="submit" class="button small">저장</button>
+          </div>
+        </form>
+
+        <div class="mp-info-row">
+          <span class="mp-info-label">비밀번호</span>
+          <span class="mp-info-value mp-info-secret">••••••••</span>
+          <button type="button" class="button secondary small" data-edit="password">비밀번호 수정</button>
+        </div>
+        <form class="mp-inline-form" id="password-form" hidden>
+          <label for="new-password">새 비밀번호 <span class="mp-muted">(영문, 숫자 포함 8자 이상)</span></label>
+          <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
+          <label for="new-password-check">새 비밀번호 확인</label>
+          <div class="mp-inline-row">
+            <input id="new-password-check" type="password" autocomplete="new-password" minlength="8" required>
+            <button type="button" class="button secondary small" data-cancel>취소</button>
+            <button type="submit" class="button small">변경</button>
+          </div>
+          <p class="mp-form-error" id="password-error" role="alert" hidden></p>
+        </form>
+
+        <div class="mp-info-row">
+          <span class="mp-info-label">가입일</span>
+          <span class="mp-info-value" id="info-joined">-</span>
+        </div>
+
+        <div class="mp-info-row">
+          <span class="mp-info-label">회원 등급</span>
+          <span class="mp-info-value"><span class="mp-grade" id="info-grade">-</span> <span class="mp-muted mp-small" id="info-grade-next"></span></span>
+        </div>
+
+        <p class="mp-muted mp-small mp-info-note">사진은 익명으로 공개되고, 이 정보는 다른 사람에게 보이지 않아요.</p>
+      </div>
     </section>
 
     <!-- ===== 내 사진 관리 ===== -->
