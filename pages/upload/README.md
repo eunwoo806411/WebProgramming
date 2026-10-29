@@ -1,6 +1,6 @@
 # 사진 등록 페이지 (pages/upload)
 
-지도에서 위치를 찍고 사진을 올리는 페이지입니다. **이 폴더 안의 파일만 수정**하고, 공통 코드는 import해서 씁니다.
+지도에서 위치를 찍거나 숭실대 건물을 골라 사진을 올리는 페이지입니다. **이 폴더 안의 파일만 수정**하고, 공통 코드는 import해서 씁니다.
 
 ## 파일 역할
 | 파일 | 역할 |
@@ -8,7 +8,8 @@
 | `index.html` | 화면 구조. Leaflet을 `shared/assets/vendor/leaflet`에서 불러옴 |
 | `upload.js` | 진입점. 폼·지도·서비스 호출 연결만 담당 |
 | `upload-input.js` | 폼 값 검증·변환 (DOM 없음, `tests/upload-input.test.mjs`로 검사) |
-| `location-picker.js` | 위치 선택 지도 (클릭·핀 드래그·좌표 입력 동기화) |
+| `location-picker.js` | 위치 선택 지도 (클릭·핀 드래그·좌표 입력 동기화, 건물 위치 점 표시) |
+| `campus-buildings.js` | 숭실대 건물 24곳의 이름·별칭·좌표(OpenStreetMap 건물 중심점)와 검색 (`tests/upload-buildings.test.mjs`) |
 | `upload.css` | 이 페이지 전용 스타일 (`upload-` 접두어) |
 
 ## 다른 담당자와 만나는 지점

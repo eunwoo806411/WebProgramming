@@ -26,3 +26,13 @@ test('올해는 한국 시간의 1월 1일부터 오늘 끝까지 선택한다',
     start: Date.parse('2025-12-31T15:00:00Z'), end: Date.parse('2026-01-01T14:59:59.999Z')
   });
 });
+test('기본 기간은 오늘(한국 시간)을 끝 날짜로, 3일 전을 시작 날짜로 한다', () => {
+  // 2026-10-28 11:48 KST
+  assert.deepEqual(controls.presetSelection('recent', Date.parse('2026-10-28T02:48:00Z')), {
+    start: Date.parse('2026-10-24T15:00:00Z'), end: Date.parse('2026-10-28T14:59:59.999Z')
+  });
+  // 월초에는 이전 달로 넘어간다: 2026-03-02 → 2026-02-27
+  assert.deepEqual(controls.presetSelection('recent', Date.parse('2026-03-02T03:00:00Z')), {
+    start: Date.parse('2026-02-26T15:00:00Z'), end: Date.parse('2026-03-02T14:59:59.999Z')
+  });
+});
