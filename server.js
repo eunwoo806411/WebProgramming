@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ssuLogin, loginErrorResponse } from './shared/server/school-login.js';
+import { SQLiteSessionStore } from './shared/server/session-store.js';
 import { CONFIG } from './shared/js/config.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -68,13 +70,15 @@ if (isProd && !process.env.SESSION_SECRET) {
 }
 
 app.use(session({
+    store: new SQLiteSessionStore(db),
     secret: process.env.SESSION_SECRET || 'dev-only-change-me',
     resave: false,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: isProd
+        secure: isProd,
+        maxAge: 7 * 24 * 60 * 60 * 1000
     }
 }));
 
@@ -89,56 +93,6 @@ app.use('/uploads', express.static(UPLOAD_DIR, {
 }));
 
 /* ---------- 유세인트 로그인 ---------- */
-const SMARTID = 'https://smartid.ssu.ac.kr/Symtra_sso';
-const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36';
-
-const cookiePairs = (res) => res.headers.getSetCookie().map(c => c.split(';')[0]);
-
-function pickInput(html, name) {
-    const tag = html.match(new RegExp(`<input[^>]*name=["']${name}["'][^>]*>`, 'i'))?.[0];
-    return tag?.match(/value=["']([^"']*)["']/i)?.[1];
-}
-
-async function ssuLogin(id, pw) {
-    const r1 = await fetch(`${SMARTID}/smln.asp`, { headers: { 'User-Agent': UA } });
-    const html = await r1.text();
-    const inTp = pickInput(html, 'in_tp_bit');
-    const rqst = pickInput(html, 'rqst_caus_cd');
-    if (inTp === undefined || rqst === undefined) {
-        throw new Error('학교 로그인 페이지를 불러오지 못했습니다.');
-    }
-
-    const r2 = await fetch(`${SMARTID}/smln_pcs.asp`, {
-        method: 'POST',
-        redirect: 'manual',
-        headers: {
-            'User-Agent': UA,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            Cookie: cookiePairs(r1).join('; ')
-        },
-        body: new URLSearchParams({
-            in_tp_bit: inTp,
-            rqst_caus_cd: rqst,
-            userid: id,
-            pwd: pw
-        })
-    });
-
-    const ok = cookiePairs(r2).some(c => c.startsWith('sToken=') && c.length > 'sToken='.length);
-    if (ok) return true;
-
-    const buf = Buffer.from(await r2.arrayBuffer());
-    let body;
-    try {
-        body = new TextDecoder('utf-8', { fatal: true }).decode(buf);
-    } catch {
-        body = new TextDecoder('euc-kr').decode(buf);
-    }
-
-    const msg = body.match(/alert\("([^"]*)"\)/)?.[1] || '로그인에 실패했습니다.';
-    throw new Error(msg.replace(/\\n/g, ' '));
-}
-
 const requireLogin = (message) => (req, res, next) => {
     if (!req.session.user) return res.status(401).json({ success: false, message });
     next();
@@ -152,7 +106,7 @@ app.post('/api/login', async (req, res) => {
     const id = String(req.body?.id ?? '').trim();
     const password = String(req.body?.password ?? '');
 
-    if (process.env.ALLOW_TEST_LOGIN === 'true' && id === 'test' && password === '1234') {
+    if (!isProd && process.env.ALLOW_TEST_LOGIN === 'true' && id === 'test' && password === '1234') {
         req.session.user = { id: 'test', name: '테스트 사용자' };
         return res.json({ success: true, message: '로그인 성공!' });
     }
@@ -167,8 +121,8 @@ app.post('/api/login', async (req, res) => {
     try {
         await ssuLogin(id, password);
     } catch (e) {
-        console.log('로그인 실패 원인:', e.message);
-        return res.status(401).json({ success: false, message: e.message });
+        const failure = loginErrorResponse(e);
+        return res.status(failure.status).json({success: false, code: failure.code, message: failure.message});
     }
 
     req.session.regenerate((err) => {
@@ -304,6 +258,6 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버 실행 중: http://localhost:${PORT}`);
 });

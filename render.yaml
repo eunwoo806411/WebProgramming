@@ -1,0 +1,19 @@
+# Free web service only. No paid disks or databases.
+services:
+  - type: web
+    name: soongsil-one-frame-login
+    runtime: node
+    branch: feature/login-server
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ALLOW_TEST_LOGIN
+        value: "false"

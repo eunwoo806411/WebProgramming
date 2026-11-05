@@ -1,5 +1,6 @@
+import {signIn} from './login-request.js';
 import {mountLayout} from '../../shared/js/layout.js';
-import {getCurrentUser, signOut} from '../../shared/js/service.js';
+import {signOut} from '../../shared/js/service.js';
 import {pageUrl} from '../../shared/js/routes.js';
 
 await mountLayout('login');
@@ -46,26 +47,6 @@ togglePasswordButton.addEventListener('click', () => {
     input.addEventListener('input', () => { loginStatus.textContent = ''; });
 });
 
-async function signIn(id, password) {
-    let response;
-    try {
-        response = await fetch('/api/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'same-origin',
-            body: JSON.stringify({id, password})
-        });
-    } catch {
-        throw new Error('서버에 연결할 수 없어요. 서버 실행 상태를 확인해 주세요.');
-    }
-    let result;
-    try { result = await response.json(); }
-    catch { throw new Error('서버 응답이 올바르지 않아요. Node 서버 주소로 접속했는지 확인해 주세요.'); }
-    if (!response.ok || !result?.success) {
-        throw new Error(result?.message || '로그인에 실패했습니다.');
-    }
-}
-
 loginForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy) return;
@@ -86,11 +67,6 @@ loginForm.addEventListener('submit', async event => {
     let failed = false;
     try {
         await signIn(studentId, password);
-        // 성공 응답뿐 아니라 실제 세션이 유지되는지도 확인합니다.
-        const user = await getCurrentUser();
-        if (!user || user.id !== studentId) {
-            throw new Error('로그인 상태를 확인하지 못했어요. 쿠키 설정을 확인하고 다시 시도해 주세요.');
-        }
         passwordInput.value = '';
         completeLogin();
     } catch (error) {
