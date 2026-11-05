@@ -5,7 +5,7 @@ import {CONFIG} from '../../shared/js/config.js';
 import {el,notice} from '../../shared/js/dom.js';
 import {createPhotoCard,showPhotoDetail} from '../../shared/js/photo-ui.js';
 import {createPhotoMap} from './map.js?v=20261010-3';
-import {mountTimeControls} from './time-controls.js?v=20261010-1';
+import {mountTimeControls} from './time-controls.js?v=20261028-1';
 import {selectSidebarPhotos} from './sidebar-photos.js';
 await mountLayout('main');
 const photosContainer=document.querySelector('#photo-list');

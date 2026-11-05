@@ -21,3 +21,28 @@
 .leaflet-control-attribution{font-size:9px!important}
 #upload-status{margin:0;font-size:13px}
 #upload-status:empty{display:none}
+/* 위치 지정 방법: 지도에서 직접 찍기 / 건물로 선택 */
+.upload-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.upload-mode-option{position:relative;cursor:pointer}
+.upload-mode-option input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.upload-mode-option span{display:grid;gap:4px;height:100%;padding:13px 15px;border:1px solid #cfd8c9;border-radius:10px;background:#fff;transition:border-color .15s,background .15s}
+.upload-mode-option strong{font-size:13px}
+.upload-mode-option small{font-size:11px;color:var(--muted);font-weight:400}
+.upload-mode-option:hover span{border-color:#97b280}
+.upload-mode-option input:checked+span{border-color:var(--green);background:#eef4e8;box-shadow:inset 0 0 0 1px var(--green)}
+.upload-mode-option input:checked+span strong{color:var(--green)}
+.upload-mode-option input:focus-visible+span{outline:3px solid #81a752;outline-offset:3px}
+.upload-buildings{display:grid;gap:10px}
+.upload-building-search input{min-height:40px}
+.upload-building-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:178px;overflow:auto;padding:2px}
+.upload-building-chip{min-height:38px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:12px;text-align:center;line-height:1.3;word-break:keep-all}
+.upload-building-chip:hover{border-color:#97b280;background:#f7faf2}
+.upload-building-chip[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff;font-weight:650}
+.upload-building-empty{font-size:12px;margin:0}
+.upload-building-dot{background:none;border:0}
+.upload-building-dot span{display:block;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #6f8f63;box-shadow:0 1px 4px #1b332d55;cursor:pointer;transition:transform .12s}
+.upload-building-dot:hover span{transform:scale(1.25)}
+.upload-building-dot.is-active span{background:var(--green);border-color:#fff}
+.upload-building-tip{font-size:12px;font-weight:650;color:var(--ink)}
+.upload-building-tip.is-active{background:var(--green);color:#fff;border-color:var(--green)}
+.upload-building-tip.is-active:before{border-top-color:var(--green)}

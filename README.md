@@ -26,7 +26,7 @@ python3 -m http.server 8001 --bind 127.0.0.1
 | 담당 | 수정할 파일 | 현재 상태 / 후속 작업 |
 |---|---|---|
 | 로그인 | `pages/login/index.html`, `login.css`, `login.js` | 기본 입력 영역과 데모 입장. 실제 인증 서버 연결 필요 |
-| 사진 등록 | `pages/upload/*` | 지도 위치 선택·사진 미리보기·등록 구현. 저장은 브라우저(데모) |
+| 사진 등록 | `pages/upload/*` | 지도 위치 선택 또는 숭실대 건물 선택·사진 미리보기·등록 구현. 저장은 브라우저(데모) |
 | 메인 | `pages/main/index.html`, `main.css`, `main.js`, `map.js`, `clusters.js`, `time-controls.js` | 실제 지도, 썸네일 묶음, 상세, 좋아요, 시간 필터 구현 |
 | 마이페이지 | `pages/mypage/index.html`, `mypage.css`, `mypage.js` | 탭·목록 영역·사용자 ID 기반 조회 연결 지점. 조회 구현 필요 |
 | 전체 사진 | `pages/explore/index.html`, `explore.css`, `explore.js` | 정렬 선택·카드 영역·상세 연결 지점. 목록 조회 연결 필요 |
@@ -99,7 +99,7 @@ if (user && photos.length) await setPhotoLiked(photos[0].id, true);
 { imageFile, latitude, longitude, placeName, description, capturedAt }
 ```
 
-지도 선택 결과는 위도·경도 입력에 자동 반영되고, `submitUpload(input)`이 `createPhoto`를 호출합니다. 등록한 사진은 별도 키 `soongsil-one-frame-uploads-v1`에 저장되어 `listPhotos`·`getPhoto`에 샘플과 함께 나옵니다(`isDemo:false`). 서버 연결 시 `upload-store.js`·`image-encode.js`는 필요 없어집니다. 자세한 내용은 `pages/upload/README.md`.
+위치는 지도에서 직접 찍거나 숭실대 건물 목록(`pages/upload/campus-buildings.js`)에서 고를 수 있습니다. 어느 쪽이든 위도·경도 입력에 자동 반영되고(건물은 중심 좌표), 건물을 고르면 비어 있는 장소명이 건물 이름으로 채워집니다. `submitUpload(input)`이 `createPhoto`를 호출합니다. 등록한 사진은 별도 키 `soongsil-one-frame-uploads-v1`에 저장되어 `listPhotos`·`getPhoto`에 샘플과 함께 나옵니다(`isDemo:false`). 서버 연결 시 `upload-store.js`·`image-encode.js`는 필요 없어집니다. 자세한 내용은 `pages/upload/README.md`.
 
 `mypage.js`의 `loadMyPhotos(tab)`은 현재 사용자 ID를 조회 함수로 전달합니다. 담당자는 공통 조회 결과를 `{status:'ready', items: Photo[]}`로 반환하도록 연결하면 됩니다. 미로그인·미연결·연결 후 빈 결과는 서로 구분됩니다.
 
@@ -123,6 +123,7 @@ location.href = photoUrl('demo-01'); // 메인 ?photo=demo-01 상세 보기
 - 필터는 `start <= 사진 시각 <= end`로 양쪽 경계를 포함합니다.
 - 날짜·시간 입력과 시작·끝 슬라이더는 초 단위로 연동됩니다.
 - 역순·빈 입력은 오류와 빈 결과를 표시합니다. 유효하지만 해당 사진이 없으면 별도 안내가 나옵니다.
+- 처음 열면 이 컴퓨터의 오늘 날짜(한국 시간)를 끝 날짜로, 그 3일 전을 시작 날짜로 선택합니다(`최근 3일`).
 - 전체 기간은 데이터의 최소·최대 시각으로 돌아갑니다.
 - 최신순: `uploadedAt` 내림차순.
 - 인기순: `likeCount` 내림차순 → `uploadedAt` 내림차순. 모두 같으면 ID로 안정 정렬합니다.

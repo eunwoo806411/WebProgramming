@@ -28,7 +28,7 @@ export function parseUploadFields(data) {
   if (!placeName) throw fail('촬영 장소명을 입력해 주세요.', 'placeName');
   const latitude = toNumber(data.get('latitude')), longitude = toNumber(data.get('longitude'));
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-    throw fail('지도에서 위치를 선택하거나 위도·경도를 확인해 주세요.', 'latitude');
+    throw fail('지도에서 위치를 찍거나 건물을 골라 주세요. 위도·경도를 직접 입력해도 돼요.', 'latitude');
   }
   if (!isInsideCampus(latitude, longitude)) throw fail('숭실대 캠퍼스 지도 범위 안의 위치를 선택해 주세요.', 'latitude');
   const captured = parseKstInput(String(data.get('capturedAt') ?? ''));

@@ -4,8 +4,11 @@ export function dateSelection(startDate,endDate){
  const start=parseKstInput(`${startDate}T00:00:00`),last=parseKstInput(`${endDate}T23:59:59`);
  return {start,end:last===null?null:last+999};
 }
+// 기본 기간: 이 컴퓨터의 현재 날짜를 끝 날짜로, 그 3일 전을 시작 날짜로 사용합니다.
+export const RECENT_DAYS=3;
 export function presetSelection(kind,now=Date.now()){
  const today=toKstInput(now).slice(0,10),[year,month,day]=today.split('-').map(Number);
+ if(kind==='recent'){const from=new Date(Date.UTC(year,month-1,day-RECENT_DAYS)).toISOString().slice(0,10);return dateSelection(from,today);}
  const previous=new Date(Date.UTC(year,month-2,1));
  const lastDay=new Date(Date.UTC(year,month-1,0)).getUTCDate();
  const monthStart=new Date(Date.UTC(previous.getUTCFullYear(),previous.getUTCMonth(),Math.min(day,lastDay))).toISOString().slice(0,10);
@@ -18,7 +21,7 @@ export function mountTimeControls(container,{photos,onChange}){
  const presets=[resetButton,...container.querySelectorAll('[data-period]')];
  const listeners=[];
  const listen=(node,event,handler)=>{if(node){node.addEventListener(event,handler);listeners.push(()=>node.removeEventListener(event,handler));}};
- let period='all';
+ let period='recent';
  const times=photos.map(p=>Date.parse(p[CONFIG.timeField])).filter(Number.isFinite);
  const extent=times.length?[Math.min(...times),Math.max(...times)]:[Date.now(),Date.now()];
  let selection={start:extent[0],end:extent[1]};
@@ -46,8 +49,10 @@ export function mountTimeControls(container,{photos,onChange}){
  const fromDates=()=>{period=null;selection=dateSelection(dateStart.value,dateEnd.value);writeTimes();sync();};
  const fromRange=()=>{period=null;selection={start:Number(rangeStart.value)*1000,end:Number(rangeEnd.value)*1000};writeTimes();writeDates();sync();};
  function reset(){period='all';selection={start:extent[0],end:extent[1]};writeTimes();writeDates();sync();}
+ // 처음 열 때는 사용자 컴퓨터의 오늘 날짜 기준 최근 3일을 보여줍니다.
+ function showRecent(){period='recent';selection=presetSelection('recent');writeTimes();writeDates();sync();}
  listen(inputStart,'input',fromInput);listen(inputEnd,'input',fromInput);listen(rangeStart,'input',fromRange);listen(rangeEnd,'input',fromRange);listen(resetButton,'click',reset);
  listen(dateStart,'input',fromDates);listen(dateEnd,'input',fromDates);listen(details,'toggle',sync);
  for(const button of presets.slice(1))listen(button,'click',()=>{period=button.dataset.period;selection=presetSelection(period);writeTimes();writeDates();sync();});
- reset();return {reset,destroy(){listeners.forEach(remove=>remove());}};
+ showRecent();return {reset,destroy(){listeners.forEach(remove=>remove());}};
 }

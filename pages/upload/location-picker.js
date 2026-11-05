@@ -2,7 +2,7 @@
 // Leaflet 기본 마커 이미지는 vendor에 없으므로 CSS 핀(divIcon)을 사용합니다.
 import {CONFIG} from '../../shared/js/config.js';
 
-export function createLocationPicker(container, {onChange, onTileError, tiles = true} = {}) {
+export function createLocationPicker(container, {onChange, onTileError, onBuildingSelect, buildings = [], tiles = true} = {}) {
   const L = window.L;
   if (!L) return null;
   const {center, zoom, minZoom, maxZoom, maxNativeZoom, maxBounds, tileUrl, attribution} = CONFIG.map;
@@ -30,10 +30,32 @@ export function createLocationPicker(container, {onChange, onTileError, tiles = 
     return true;
   }
   map.on('click', e => place(e.latlng.lat, e.latlng.lng));
+
+  // 건물 위치 점: 누르면 해당 건물을 촬영 위치로 선택합니다. (마커 클릭은 지도 클릭으로 번지지 않습니다.)
+  const buildingMarkers = new Map();
+  for (const b of buildings) {
+    const dot = L.marker([b.latitude, b.longitude], {
+      icon: L.divIcon({className: 'upload-building-dot', html: '<span></span>', iconSize: [16, 16], iconAnchor: [8, 8]}),
+      keyboard: false, title: `${b.name} 선택`, zIndexOffset: -100
+    }).addTo(map);
+    dot.on('click', () => onBuildingSelect?.(b.id));
+    buildingMarkers.set(b.id, {dot, name: b.name});
+  }
+  // 선택한 건물은 이름표를 계속 보여주고, 나머지는 마우스를 올렸을 때만 보여줍니다.
+  function highlightBuilding(id) {
+    for (const [key, {dot, name}] of buildingMarkers) {
+      const active = key === id;
+      dot.getElement()?.classList.toggle('is-active', active);
+      dot.unbindTooltip().bindTooltip(name, {direction: 'top', offset: [0, -8], permanent: active, className: `upload-building-tip${active ? ' is-active' : ''}`});
+    }
+  }
+  highlightBuilding(null);
+
   return {
+    highlightBuilding,
     setPosition: (lat, lng, options) => place(lat, lng, {pan: true, notify: false, ...options}),
     useCenter() { const c = map.getCenter(); return place(c.lat, c.lng); },
-    clear() { marker?.remove(); marker = last = null; },
+    clear() { marker?.remove(); marker = last = null; highlightBuilding(null); },
     focus() { container.scrollIntoView({block: 'center', behavior: 'smooth'}); container.focus({preventScroll: true}); },
     destroy() { map.remove(); }
   };
