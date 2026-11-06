@@ -1,4 +1,4 @@
-// 페이지는 이 파일만 통해 데이터에 접근합니다. 저장은 서버(Express + SQLite)가 담당합니다.
+// 페이지는 이 파일만 통해 데이터에 접근합니다. 저장은 서버(Express + PostgreSQL / 개발용SQLite)가 담당합니다.
 import {createServerAdapter} from './server-adapter.js';
 const adapter=createServerAdapter();
-export const {getCurrentUser,signInDemo,signOut,listPhotos,getPhoto,createPhoto,setPhotoLiked,getUserLikedPhotoIds,listUserPhotos,listUserLikedPhotos,listPhotoPage,listMapPhotos,getPhotoExtent}=adapter;
+export const {getCurrentUser,signInDemo,signOut,listPhotos,getPhoto,createPhoto,setPhotoLiked,getUserLikedPhotoIds,listUserPhotos,listUserLikedPhotos,listPhotoPage,listMapPhotos,getPhotoExtent,updatePhoto,deletePhoto,unlikePhoto,updateNickname}=adapter;

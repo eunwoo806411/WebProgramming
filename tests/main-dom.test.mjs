@@ -8,7 +8,7 @@ import {createServer} from '../server.js';
 
 test('실제 HTML과 API로 날짜 변경·더 보기·선택 버튼을 갱신하며 지도 라이브러리 실패에도 목록은 동작한다',async t=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'main-dom-'));
- const runtime=await createServer({storageDir:dir,seedDemo:true,sessionSecret:'dom-test-secret'});
+ const runtime=await createServer({env:{},storageDir:dir,seedDemo:true,sessionSecret:'dom-test-secret'});
  const server=runtime.app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
  const base=`http://127.0.0.1:${server.address().port}`;
  const dom=new JSDOM(await fs.readFile(new URL('../pages/main/index.html',import.meta.url),'utf8'),{url:base+'/pages/main/index.html'});

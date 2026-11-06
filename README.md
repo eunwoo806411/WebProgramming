@@ -13,7 +13,7 @@ npm start
 
 Render의 Node 서버에 **Supabase PostgreSQL·Storage**를 연결하도록 구현했습니다. 사진·좋아요·로그인 세션은 DB에, 이미지 파일은 Storage에 저장합니다. Render 서버가 쉬거나 재시작되어도 해당 외부 저장소의 데이터를 다시 읽습니다.
 
-아직 Supabase 프로젝트는 연결하지 않았습니다. 프로젝트 생성 후 SQL을 적용하고 `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`을 서버 환경변수로 설정해야 합니다. 배포 환경에서는 외부 저장소 설정이 빠지면 시작을 중단합니다. 비밀키를 프런트엔드 코드나 Git에 넣지 마세요.
+개발 환경에서는 Supabase 연결과 임시 사진의 저장·수정·삭제를 확인했습니다. 새 환경에서는 프로젝트 생성 후 `supabase/migrations/`의 SQL을 번호 순서대로 적용하고 `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`을 서버 환경변수로 설정해야 합니다. 배포 환경에서는 외부 저장소 설정이 빠지면 시작을 중단합니다. 비밀키를 프런트엔드 코드나 Git에 넣지 마세요.
 
 설정 순서·API·테스트 방법은 [메인페이지 백엔드 안내](docs/main-backend.md)를 참고하세요. `render.yaml`의 배포 브랜치는 팀에서 통합한 브랜치로 맞추세요. 학교 계정 로그인 방식은 기존 구현을 유지했습니다.
 

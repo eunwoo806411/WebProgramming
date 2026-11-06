@@ -13,12 +13,12 @@ export function createServerAdapter({encodeImage=encodeImageFile,fetchImpl=(...a
   const p=new URLSearchParams();
   for(const name of ['start','end'])if(q[name]!==undefined&&q[name]!==null&&Number.isFinite(Number(q[name])))p.set(name,new Date(Number(q[name])).toISOString());
   for(const [key,value] of Object.entries(q.bounds??{}))p.set(key,String(value));
-  for(const key of ['cursor','limit'])if(q[key]!==undefined&&q[key]!==null)p.set(key,String(q[key]));
+  for(const key of ['cursor','limit','order'])if(q[key]!==undefined&&q[key]!==null)p.set(key,String(q[key]));
   if(q.ids)p.set('ids',q.ids.join(','));return p;
  }
  const listPhotoPage=q=>q?.ids?api('/api/photos/search',{method:'POST',body:JSON.stringify({query:params(q).toString()})}):api('/api/photos?'+params(q));
  async function collect(endpoint,q={}){const photos=[];let cursor;do{const data=endpoint?await api(endpoint+'?'+params({...q,limit:100,cursor})):await listPhotoPage({...q,limit:100,cursor});photos.push(...data.photos);cursor=data.nextCursor;}while(cursor);return sortPhotos(photos,q.order);}
- async function getCurrentUser(){try{const {user}=await api('/api/me');return {id:user.id,isDemo:false};}catch(e){if(e.code==='AUTH_REQUIRED')return null;throw e;}}
+ async function getCurrentUser(){try{const {user}=await api('/api/me');return {...user,isDemo:false};}catch(e){if(e.code==='AUTH_REQUIRED')return null;throw e;}}
  return {
   getCurrentUser,signInDemo:getCurrentUser,signOut:()=>api('/api/logout',{method:'POST'}),
   listPhotoPage,listMapPhotos:q=>api('/api/map/photos?'+params(q)),getPhotoExtent:()=>api('/api/photos/extent'),
@@ -33,6 +33,10 @@ export function createServerAdapter({encodeImage=encodeImageFile,fetchImpl=(...a
    if(!await getCurrentUser())throw Object.assign(new Error('사진 등록은 로그인 후 사용할 수 있어요.'),{code:'AUTH_REQUIRED'});
    const imageData=await encodeImage(imageFile);return (await api('/api/photos',{method:'POST',body:JSON.stringify({imageData,latitude,longitude,placeName,description,capturedAt:new Date(captured).toISOString()})})).photo;
   },
+  updatePhoto:async(id,changes)=>(await api('/api/photos/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(changes)})).photo,
+  deletePhoto:id=>api('/api/photos/'+encodeURIComponent(id),{method:'DELETE'}),
+  unlikePhoto:id=>api('/api/likes/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify({liked:false})}),
+  updateNickname:async(userId,nickname)=>(await api('/api/me',{method:'PATCH',body:JSON.stringify({nickname})})).user,
   async listUserPhotos(userId){return {status:'ready',userId,items:await collect('/api/my/photos')};},
   async listUserLikedPhotos(userId){return {status:'ready',userId,items:await collect('/api/my/likes')};}
  };

@@ -3,6 +3,7 @@ const idPattern=/^[A-Za-z0-9_-]{1,100}$/;
 export function parsePhotoQuery(params){
  const get=name=>{const values=params.getAll(name);if(values.length>1)throw invalid();return values[0];};
  const date=name=>{const raw=get(name);if(raw===undefined)return null;if(!/^\d{4}-\d\d-\d\dT/.test(raw)||!/(Z|[+-]\d\d:\d\d)$/.test(raw)||!Number.isFinite(Date.parse(raw)))throw invalid();return new Date(raw).toISOString();};
+ const order=get('order')??'latest';if(!['latest','popular'].includes(order))throw invalid();
  const start=date('start'),end=date('end');if(start&&end&&start>end)throw invalid();
  const coordinates=['south','west','north','east'].map(get);let bounds=null;
  if(coordinates.some(v=>v!==undefined)){
@@ -19,8 +20,9 @@ export function parsePhotoQuery(params){
  if(rawCursor!==undefined){try{
   if(rawCursor.length>512||!/^[A-Za-z0-9_-]+$/.test(rawCursor))throw invalid();
   cursor=JSON.parse(Buffer.from(rawCursor,'base64url').toString());
+  if((cursor.order??'latest')!==order||(order==='popular'&&(!Number.isSafeInteger(cursor.likeCount)||cursor.likeCount<0)))throw invalid();
   if(!idPattern.test(cursor.id)||typeof cursor.uploadedAt!=='string'||new Date(cursor.uploadedAt).toISOString()!==cursor.uploadedAt)throw invalid();
  }catch{throw invalid();}}
- return {start,end,bounds,ids,limit,cursor};
+ return {start,end,bounds,ids,limit,cursor,order};
 }
-export const encodeCursor=p=>Buffer.from(JSON.stringify({uploadedAt:p.uploadedAt,id:p.id})).toString('base64url');
+export const encodeCursor=(p,order='latest')=>Buffer.from(JSON.stringify({uploadedAt:p.uploadedAt,id:p.id,...(order==='popular'?{order,likeCount:p.likeCount}:{})})).toString('base64url');

@@ -10,7 +10,8 @@ export function createSQLiteDatabase(raw){
  CREATE TABLE IF NOT EXISTS likes(user_id TEXT NOT NULL,photo_id TEXT NOT NULL,PRIMARY KEY(user_id,photo_id));
  CREATE TABLE IF NOT EXISTS sessions(sid TEXT PRIMARY KEY,data TEXT NOT NULL,expires BIGINT NOT NULL);`);
  const columns=new Set(raw.prepare('PRAGMA table_info(photos)').all().map(c=>c.name));
- for(const [name,type] of [['image_url',"TEXT NOT NULL DEFAULT ''"],['base_likes','INTEGER NOT NULL DEFAULT 0'],['is_demo','INTEGER NOT NULL DEFAULT 0']])if(!columns.has(name))raw.exec(`ALTER TABLE photos ADD COLUMN ${name} ${type}`);
+ for(const [name,type] of [['image_url',"TEXT NOT NULL DEFAULT ''"],['base_likes','INTEGER NOT NULL DEFAULT 0'],['is_demo','INTEGER NOT NULL DEFAULT 0'],['deleted_at','TEXT']])if(!columns.has(name))raw.exec(`ALTER TABLE photos ADD COLUMN ${name} ${type}`);
+ raw.exec(`CREATE TABLE IF NOT EXISTS profiles(user_id TEXT PRIMARY KEY,nickname TEXT NOT NULL,created_at TEXT NOT NULL);`);
  raw.exec(`CREATE INDEX IF NOT EXISTS photos_latest ON photos(uploaded_at DESC,id DESC);
  CREATE INDEX IF NOT EXISTS photos_location ON photos(latitude,longitude);
  CREATE INDEX IF NOT EXISTS likes_photo ON likes(photo_id);`);

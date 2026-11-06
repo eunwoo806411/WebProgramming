@@ -4,10 +4,11 @@
 
 import { mountLayout } from '../../shared/js/layout.js';
 import * as service from '../../shared/js/service.js';
-import { photoUrl } from '../../shared/js/routes.js';
+import { photoUrl, pageUrl } from '../../shared/js/routes.js';
 import { CONFIG } from '../../shared/js/config.js';
 import { photoImage, showPhotoGroup } from '../../shared/js/photo-ui.js';
 import { createPhotoMap } from '../main/map.js';
+import {el} from '../../shared/js/dom.js';
 
 await mountLayout('mypage');
 
@@ -36,19 +37,24 @@ export async function loadMyPhotos(tab) {
 }
 export function openPhoto(id) { location.href = photoUrl(id); }
 
+let loadVersion=0;
 async function loadAll() {
-  user = await service.getCurrentUser();
-  const [mine, liked] = await Promise.all([loadMyPhotos('uploaded'), loadMyPhotos('liked')]);
-  status = { mine: mine.status ?? 'ready', liked: liked.status ?? 'ready' };
-  myPhotos = mine.items ?? [];
-  likedPhotos = liked.items ?? [];
+  const version=++loadVersion,u=await service.getCurrentUser();
+  const [mine,liked]=u?await Promise.all([service.listUserPhotos(u.id),service.listUserLikedPhotos(u.id)]):[{status:'signed-out',items:[]},{status:'signed-out',items:[]}];
+  if(version!==loadVersion)return;
+  user=u;status={mine:mine.status,liked:liked.status};myPhotos=mine.items;likedPhotos=liked.items;
+}
+async function reload() {
+  const statusBox=$('#mypage-status');statusBox.replaceChildren();
+  try{await loadAll();refreshAll();if(!user){const link=el('a','button secondary small','로그인하기');link.href=pageUrl('login');statusBox.append(el('p','','로그인하면 내 기록을 확인할 수 있어요.'),link);}if(location.hash==='#account')showAccountStep();}
+  catch(error){status.mine=status.liked='error';const retry=el('button','button secondary small','다시 시도');retry.onclick=reload;statusBox.replaceChildren(el('p','error',error.message),retry);refreshAll();}
 }
 
 function emptyText(kind) {
   const st = kind === 'liked' ? status.liked : status.mine;
   const title = kind === 'liked' ? '좋아요한 사진' : '업로드한 사진';
   if (st === 'signed-out') return '로그인 후 나만의 사진을 확인할 수 있어요.';
-  if (st === 'not-connected') return `${title} 목록 연결 예정 · 담당 팀원이 사용자별 조회 함수를 구현할 영역입니다.`;
+  if (st === 'error') return '기록을 불러오지 못했어요. 위의 다시 시도를 눌러 주세요.';
   if (st === 'loading') return '불러오는 중…';
   return `아직 ${title}이 없어요.`;
 }
@@ -62,14 +68,13 @@ function toast(msg) {
 }
 // service.js에 함수가 아직 없으면 안내만 띄우고 멈춰요.
 async function callService(name, ...args) {
-  if (typeof service[name] !== 'function') { toast(`${name} 함수 연결 예정이에요`); return false; }
   try { await service[name](...args); return true; }
-  catch (err) { console.error(err); toast('처리 중 문제가 생겼어요'); return false; }
+  catch (err) { toast(err.message || '처리 중 문제가 생겼어요'); return false; }
 }
 function photoCard(p, actions = []) {
   const el = document.createElement('article'); el.className = 'mp-photo';
   const img = document.createElement('div'); img.className = 'mp-photo-img';
-  img.append(photoImage(p)); img.onclick = () => openPhoto(p.id);
+  img.append(photoImage(p)); img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','사진 상세 보기');img.onclick = () => openPhoto(p.id);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPhoto(p.id);}};
   const body = document.createElement('div'); body.className = 'mp-photo-body';
   body.innerHTML = `<p></p><p class="mp-photo-meta"></p>`;
   body.children[0].textContent = captionOf(p) || placeOf(p);
@@ -78,7 +83,7 @@ function photoCard(p, actions = []) {
     const box = document.createElement('div'); box.className = 'mp-photo-actions';
     actions.forEach(({ label, cls = '', onClick }) => {
       const b = document.createElement('button'); b.type = 'button';
-      b.className = `button secondary small ${cls}`; b.textContent = label; b.onclick = onClick; box.append(b);
+      b.className = `button secondary small ${cls}`; b.textContent = label; b.onclick = async()=>{if(b.disabled)return;b.disabled=true;try{await onClick();}finally{b.disabled=false;}}; box.append(b);
     });
     body.append(box);
   }
@@ -202,23 +207,21 @@ function renderMyPhotos() {
   ])));
 }
 function openEdit(p) {
-  const dlg = $('#edit-dialog');
+  const dlg = $('#edit-dialog');dlg.returnValue='';
   $('#edit-caption').value = captionOf(p);
   $('#edit-place').value = placeOf(p);
   dlg.onclose = async () => {
     if (dlg.returnValue !== 'save') return;
     const data = { description: $('#edit-caption').value.trim(), placeName: $('#edit-place').value.trim() || placeOf(p) };
     if (!(await callService('updatePhoto', p.id, data))) return;
-    Object.assign(p, data);
-    refreshAll(); toast('수정했어요');
+    await reload(); toast('수정했어요');
   };
   dlg.showModal();
 }
 async function removePhoto(p) {
   if (!confirm('이 사진을 삭제할까요?')) return;
   if (!(await callService('deletePhoto', p.id))) return;
-  myPhotos = myPhotos.filter((x) => x.id !== p.id);
-  refreshAll(); toast('삭제했어요');
+  await reload(); toast('삭제했어요');
 }
 
 /* ---------- 좋아요한 사진 ---------- */
@@ -228,20 +231,19 @@ function renderLiked() {
   grid.replaceChildren(...likedPhotos.map((p) => photoCard(p, [
     { label: '♥ 좋아요 취소', onClick: async () => {
       if (!(await callService('unlikePhoto', p.id))) return;
-      likedPhotos = likedPhotos.filter((x) => x.id !== p.id); renderLiked(); toast('좋아요를 취소했어요');
+      await reload(); toast('좋아요를 취소했어요');
     } },
   ])));
 }
 
 /* ---------- 내 통계 ---------- */
 function bars(entries) {
-  const max = Math.max(1, ...entries.map(([, v]) => v));
-  return entries.map(([label, v]) => `
-    <div class="mp-bar" title="${label} · ${v}장">
-      <span>${label}</span>
-      <div class="mp-bar-track"><div class="mp-bar-fill" style="width:${(v / max) * 100}%"></div></div>
-      <b>${v}</b>
-    </div>`).join('');
+  const max=Math.max(1,...entries.map(([,v])=>v));
+  return entries.map(([label,value])=>{
+    const row=el('div','mp-bar');row.title=`${label} · ${value}장`;
+    const track=el('div','mp-bar-track'),fill=el('div','mp-bar-fill');fill.style.width=`${value/max*100}%`;track.append(fill);
+    row.append(el('span','',label),track,el('b','',String(value)));return row;
+  });
 }
 /* 등급 달성 기록: 올린 순서대로 N번째 사진을 올린 날 = 그 등급을 딴 날 */
 const uploadedAt = (p) => new Date(p.createdAt ?? p.uploadedAt ?? timeOf(p));
@@ -279,8 +281,8 @@ function renderStats() {
   renderGradeHistory();
 
   const none = `<p class="mp-muted">${emptyText('mine')}</p>`;
-  const byPlace = {}; myPhotos.forEach((p) => (byPlace[placeOf(p)] = (byPlace[placeOf(p)] || 0) + 1));
-  $('#stat-places').innerHTML = myPhotos.length ? bars(Object.entries(byPlace).sort((a, b) => b[1] - a[1]).slice(0, 3)) : none;
+  const byPlace = Object.create(null); myPhotos.forEach((p) => (byPlace[placeOf(p)] = (byPlace[placeOf(p)] || 0) + 1));
+  $('#stat-places').replaceChildren(...(myPhotos.length?bars(Object.entries(byPlace).sort((a,b)=>b[1]-a[1]).slice(0,3)):[el('p','mp-muted',emptyText('mine'))]));
 
   const top = [...myPhotos].sort((a, b) => likesOf(b) - likesOf(a)).slice(0, 3);
   const box = $('#stat-best');
@@ -289,7 +291,7 @@ function renderStats() {
     const row = document.createElement('div'); row.className = 'mp-best';
     const rank = document.createElement('span'); rank.className = 'mp-rank'; rank.textContent = i + 1;
     const img = document.createElement('div'); img.className = 'mp-photo-img';
-    img.append(photoImage(p)); img.onclick = () => openPhoto(p.id);
+    img.append(photoImage(p)); img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','사진 상세 보기');img.onclick = () => openPhoto(p.id);img.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPhoto(p.id);}};
     const text = document.createElement('div');
     text.innerHTML = '<p style="margin:0"></p><p class="mp-photo-meta"></p>';
     text.children[0].textContent = captionOf(p) || placeOf(p);
@@ -299,9 +301,8 @@ function renderStats() {
   }));
 }
 
-/* ---------- 내 정보 확인 (본인 확인 → 정보 보기 → 항목별 수정) ---------- */
-// 본인 확인 상태는 이 화면을 벗어나면 초기화돼요.
-let accountVerified = false;
+/* ---------- 로그인한 내 계정 정보 ---------- */
+
 
 // 회원 등급: 올린 사진 장수로 계산 (재미 요소 · 기능 차이는 없음)
 const GRADES = [
@@ -323,61 +324,23 @@ function renderAccountInfo() {
   const g = gradeOf(myPhotos.length);
   $('#info-grade').textContent = g.name; $('#info-grade-next').textContent = g.next;
 }
-function closeInlineForms() {
-  ['#account-form', '#password-form'].forEach((id) => { $(id).hidden = true; $(id).reset(); });
-  $('#password-error').hidden = true;
-}
+function closeInlineForms() {$('#account-form').hidden=true;$('#account-form').reset();}
 function showAccountStep() {
-  $('#verify-form').hidden = accountVerified;
-  $('#account-edit').hidden = !accountVerified;
-  $('#verify-error').hidden = true;
+  $('#account-edit').hidden=!user;
+  if(user)renderAccountInfo();
   closeInlineForms();
-  if (accountVerified) renderAccountInfo(); else $('#verify-password').value = '';
 }
-function showError(id, msg) { const e = $(id); e.textContent = msg; e.hidden = false; }
-
-$('#verify-form').onsubmit = async (e) => {
-  e.preventDefault();
-  if (!user) { toast('로그인이 필요해요'); return; }
-  const pw = $('#verify-password').value;
-  if (typeof service.verifyPassword !== 'function') {
-    // 아직 서버 연결 전: 화면 흐름 확인용으로 다음 단계로 넘어가요.
-    toast('verifyPassword 함수 연결 예정 · 데모로 다음 단계로 넘어가요');
-  } else {
-    try {
-      if (!(await service.verifyPassword(user.id, pw))) { showError('#verify-error', '비밀번호가 맞지 않아요.'); return; }
-    } catch (err) { console.error(err); showError('#verify-error', '확인 중 문제가 생겼어요.'); return; }
-  }
-  accountVerified = true; showAccountStep();
+document.querySelector('[data-edit="nickname"]').onclick=()=>{
+  const form=$('#account-form'),open=form.hidden;closeInlineForms();form.hidden=!open;
+  if(open){$('#nickname-input').value=user?.nickname??'';$('#nickname-input').focus();}
 };
-
-// '닉네임 수정' / '비밀번호 수정' 버튼 → 해당 줄 아래에 입력 칸 펼치기
-document.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => {
-  const form = b.dataset.edit === 'nickname' ? '#account-form' : '#password-form';
-  const wasOpen = !$(form).hidden;
-  closeInlineForms();
-  if (wasOpen) return;
-  $(form).hidden = false;
-  if (b.dataset.edit === 'nickname') $('#nickname-input').value = user?.nickname ?? '';
-  $(form).querySelector('input').focus();
-}));
-document.querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = closeInlineForms));
-
+document.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=closeInlineForms);
 $('#account-form').onsubmit = async (e) => {
   e.preventDefault();
   const v = $('#nickname-input').value.trim();
-  if (v.length < 2) { toast('닉네임은 2자 이상이어야 해요'); return; }
+  if ([...v].length < 2 || [...v].length > 12) { toast('닉네임은 2~12자로 입력해 주세요'); return; }
   if (!(await callService('updateNickname', user.id, v))) return;
   user.nickname = v; renderProfile(); renderAccountInfo(); closeInlineForms(); toast('닉네임을 저장했어요');
-};
-
-$('#password-form').onsubmit = async (e) => {
-  e.preventDefault();
-  const a = $('#new-password').value, b = $('#new-password-check').value;
-  if (a.length < 8 || !/[A-Za-z]/.test(a) || !/[0-9]/.test(a)) { showError('#password-error', '영문과 숫자를 섞어 8자 이상 입력해 주세요.'); return; }
-  if (a !== b) { showError('#password-error', '새 비밀번호가 서로 달라요.'); return; }
-  if (!(await callService('changePassword', user.id, a))) return;
-  closeInlineForms(); toast('비밀번호를 변경했어요');
 };
 
 /* ---------- 화면 전환 (#account, #my-photos ...) ---------- */
@@ -385,7 +348,6 @@ const VIEWS = { '': 'home', account: 'account', 'my-photos': 'my-photos', liked:
 function route() {
   const key = VIEWS[location.hash.slice(1)] ?? 'home';
   document.querySelectorAll('.mp-view').forEach((v) => (v.hidden = v.id !== `view-${key}`));
-  if (key !== 'account') accountVerified = false; // 계정 화면을 나가면 다시 확인받기
   if (key === 'account') showAccountStep();
   if (key === 'home' && photoMap) requestAnimationFrame(() => { renderMap(); renderHeatmap(); }); // 숨겨졌던 화면 다시 그리기
   window.scrollTo(0, 0);
@@ -396,5 +358,5 @@ document.querySelectorAll('.mp-back').forEach((a) => (a.onclick = (e) => { e.pre
 window.addEventListener('hashchange', route);
 route();
 refreshAll();          // 불러오는 동안 틀 먼저
-await loadAll();
-refreshAll();
+await reload();
+document.addEventListener('photos-changed',reload);

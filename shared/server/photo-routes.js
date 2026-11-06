@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {parsePhotoQuery} from './photo-query.js';
 import {CONFIG} from '../js/config.js';
-export function mountPhotoRoutes(app,{repo,files,requireLogin}){
+export function mountPhotoRoutes(app,{repo,files,requireLogin,cleanupDeletedPhotos}){
  const user=req=>req.session.user?.id;
  app.get('/api/photos/extent',async(req,res)=>res.json({success:true,...await repo.extent()}));
  app.get('/api/map/photos',async(req,res)=>res.json({success:true,...await repo.map(parsePhotoQuery(new URLSearchParams(req.originalUrl.split('?')[1])),user(req))}));
@@ -16,6 +16,21 @@ export function mountPhotoRoutes(app,{repo,files,requireLogin}){
   const result=await repo.setLiked(req.params.photoId,user(req),req.body.liked);
   if(!result)return res.status(404).json({success:false,message:'사진을 찾을 수 없어요.'});
   res.json({success:true,...result});
+ });
+ app.patch('/api/photos/:id',requireLogin('로그인이 필요합니다.'),async(req,res)=>{
+  const body=req.body;
+  if(!body||typeof body!=='object'||Array.isArray(body)||!Object.keys(body).length||Object.keys(body).some(k=>!['placeName','description'].includes(k)))return res.status(400).json({success:false,message:'수정할 장소와 설명을 확인해 주세요.'});
+  const changes={};for(const key of Object.keys(body)){
+   if(typeof body[key]!=='string'||!body[key].trim()||body[key].trim().length>(key==='placeName'?100:1000))return res.status(400).json({success:false,message:'장소는 100자, 설명은 1000자 이내로 입력해 주세요.'});
+   changes[key]=body[key].trim();
+  }
+  const photo=await repo.update(req.params.id,user(req),changes);
+  if(!photo)return res.status(404).json({success:false,message:'수정할 사진을 찾을 수 없어요.'});
+  res.json({success:true,photo});
+ });
+ app.delete('/api/photos/:id',requireLogin('로그인이 필요합니다.'),async(req,res)=>{
+  if(!await repo.markDeleted(req.params.id,user(req)))return res.status(404).json({success:false,message:'삭제할 사진을 찾을 수 없어요.'});
+  await cleanupDeletedPhotos();res.json({success:true});
  });
  app.post('/api/photos',requireLogin('사진 등록은 로그인 후 사용할 수 있어요.'),async(req,res)=>{
   const b=req.body??{},bad=message=>res.status(400).json({success:false,message});

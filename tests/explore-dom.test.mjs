@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {JSDOM} from 'jsdom';
+import {createServer} from '../server.js';
+
+test('전체 사진은 24장씩 더 보고 인기순 정렬과 조회 실패 재시도가 동작한다',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'explore-dom-'));
+ const runtime=await createServer({env:{},storageDir:dir,seedDemo:false,sessionSecret:'dom-test-secret',allowTestLogin:true});
+ const server=runtime.app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base=`http://127.0.0.1:${server.address().port}`;
+ for(let i=0;i<26;i++)await runtime.repo.insert({id:'photo-'+String(i).padStart(2,'0'),authorId:'other',imageUrl:'/uploads/a.jpg',latitude:37.496,longitude:126.957,placeName:'도서관',description:'사진 '+i,uploadedAt:'2026-11-01T00:00:00Z',capturedAt:'2026-11-01T00:00:00Z',likeCount:i===0?10:0});
+ const network=globalThis.fetch,login=await network(base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'test',password:'1234'})});const cookie=login.headers.get('set-cookie').split(';')[0];
+ const dom=new JSDOM(await fs.readFile(new URL('../pages/explore/index.html',import.meta.url),'utf8'),{url:base+'/pages/explore/index.html'}),doc=dom.window.document;
+ dom.window.scrollTo=()=>{};
+ dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(value){this.returnValue=value;this.open=false;this.dispatchEvent(new dom.window.Event('close'));};
+ const globals={window:dom.window,document:doc,location:dom.window.location,CustomEvent:dom.window.CustomEvent,confirm:()=>true,requestAnimationFrame:fn=>fn()};const old=new Map(Object.keys(globals).map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
+ for(const [k,v] of Object.entries(globals))Object.defineProperty(globalThis,k,{configurable:true,writable:true,value:v});
+ let fail=true;globalThis.fetch=(url,options={})=>fail&&String(url).startsWith('/api/photos?')?Promise.resolve(new Response(JSON.stringify({message:'일시적 조회 실패'}),{status:503})):network(new URL(url,base),{...options,headers:{...options.headers,Cookie:cookie}});
+ t.after(async()=>{globalThis.fetch=network;for(const k of Object.keys(globals)){if(old.get(k))Object.defineProperty(globalThis,k,old.get(k));else delete globalThis[k];}dom.window.close();await new Promise(r=>server.close(r));await runtime.close();await fs.rm(dir,{recursive:true,force:true});});
+ const wait=async check=>{for(let i=0;i<150;i++){if(await check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('DOM update timed out');};
+ await import('../pages/explore/explore.js');
+ const retry=doc.querySelector('#explore-status button');assert.ok(retry);fail=false;retry.click();
+ await wait(()=>doc.querySelectorAll('#explore-grid .photo-card').length===24);
+ assert.equal(doc.querySelector('#explore-count').textContent,'26장');
+ doc.querySelector('#explore-more').click();await wait(()=>doc.querySelectorAll('#explore-grid .photo-card').length===26);assert.equal(doc.querySelector('#explore-more').hidden,true);
+ doc.querySelector('#popular').click();await wait(()=>doc.querySelector('#explore-grid .photo-card')?.dataset.focusKey==='photo:photo-00');
+ assert.equal(doc.querySelectorAll('#explore-grid .photo-card').length,24);
+ await runtime.db.query('UPDATE photos SET base_likes=0 WHERE id=$1',['photo-00']);
+ doc.querySelector('#explore-more').click();await wait(()=>doc.querySelector('#explore-more').hidden);
+ assert.equal(doc.querySelectorAll('#explore-grid .photo-card').length,26,'순위가 바뀌어도 같은 카드는 중복 표시하지 않는다');
+ doc.querySelector('#explore-grid .photo-card').click();await wait(()=>doc.querySelector('#photo-dialog .like'));assert.equal(doc.querySelector('#photo-dialog').open,true);
+});

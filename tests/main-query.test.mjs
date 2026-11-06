@@ -55,3 +55,12 @@ test('시간대가 있는 사진을 UTC로 통일해서 날짜 필터 경계를 
  assert.deepEqual((await repo.list(q)).photos.map(p=>p.id),['kst']);
  }finally{await db.close();}
 });
+
+test('인기순 페이지는 좋아요 수와 동률 순서를 유지하며 누락 없이 더 본다',async()=>{
+ const db=createSQLiteDatabase(new Database(':memory:')),repo=createPhotoRepository(db);
+ try{
+  for(let i=0;i<7;i++)await repo.insert({id:'rank-'+i,authorId:'user',imageUrl:'https://example.test/a.jpg',latitude:37.496,longitude:126.957,placeName:'도서관',description:'기록',capturedAt:'2026-01-01T00:00:00Z',uploadedAt:'2026-01-01T00:00:00Z',likeCount:i%3});
+  let cursor,ids=[];do{const page=await repo.list(parsePhotoQuery(new URLSearchParams({order:'popular',limit:'2',...(cursor?{cursor}:{})})));ids.push(...page.photos.map(p=>p.id));cursor=page.nextCursor;}while(cursor);
+  assert.deepEqual(ids,['rank-5','rank-2','rank-4','rank-1','rank-6','rank-3','rank-0']);
+ }finally{await db.close();}
+});
