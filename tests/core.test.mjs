@@ -22,14 +22,14 @@ test('손상된 저장 상태는 초기값으로, 저장 불가는 상태를 바
  const a=createLocalAdapter(store);const [p]=await a.listPhotos();await a.signInDemo();fail=true;
  await assert.rejects(a.setPhotoLiked(p.id,true),{code:'STORAGE_UNAVAILABLE'});assert.equal((await a.getPhoto(p.id)).likeCount,p.likeCount);
 });
-test('사용자별 좋아요 분리 및 조회와 미연결 계약',async()=>{
+test('사용자별 좋아요 분리 및 연결된 마이페이지 조회',async()=>{
  const store=memory(),api=createLocalAdapter(store),[p]=await api.listPhotos();
  store.setItem(STORAGE_KEY,JSON.stringify({version:1,currentUser:{id:'other',isDemo:true},likedByUser:{other:[p.id],'demo-user':[]}}));
  assert.deepEqual(await api.getUserLikedPhotoIds('other'),[p.id]);assert.deepEqual(await api.getUserLikedPhotoIds('demo-user'),[]);
  await api.signInDemo();assert.deepEqual(await api.getUserLikedPhotoIds('demo-user'),[]);
  await assert.rejects(api.setPhotoLiked('missing',true),{code:'PHOTO_NOT_FOUND'});
  assert.equal(await api.getPhoto('missing'),null);await assert.rejects(api.createPhoto({}),{code:'INVALID_INPUT'});
- assert.equal((await api.listUserPhotos('demo-user')).status,'not-connected');
+ const mine=await api.listUserPhotos('demo-user');assert.equal(mine.status,'ready');assert.deepEqual(mine.items.map(p=>p.id),['demo-01','demo-04','demo-07','demo-10']);
 });
 test('한국 시간은 호스트 시간대와 무관하고 무효 날짜를 거부한다',()=>{
  assert.equal(parseKstInput('2026-09-01T09:00:00'),Date.parse('2026-09-01T00:00:00Z'));

@@ -17,3 +17,13 @@ services:
         generateValue: true
       - key: ALLOW_TEST_LOGIN
         value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: photos
+      - key: SEED_DEMO_PHOTOS
+        value: "false"
