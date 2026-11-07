@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {JSDOM} from 'jsdom';
+import {createServer} from '../server.js';
+
+test('마이페이지에서 수정·좋아요 취소·닉네임 저장·삭제하면 통계와 목록도 함께 바뀐다',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'mypage-dom-'));
+ const runtime=await createServer({env:{},storageDir:dir,seedDemo:false,sessionSecret:'dom-test-secret',allowTestLogin:true});
+ const server=runtime.app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base=`http://127.0.0.1:${server.address().port}`;
+ await runtime.repo.insert({id:'mine',authorId:'test',imageUrl:'/uploads/mine.jpg',latitude:37.496,longitude:126.957,placeName:'<img src=x onerror=alert(1)>',description:'기존 설명',uploadedAt:new Date().toISOString(),capturedAt:new Date().toISOString()});await runtime.repo.setLiked('mine','test',true);
+ const network=globalThis.fetch,login=await network(base+'/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'test',password:'1234'})});const cookie=login.headers.get('set-cookie').split(';')[0];
+ const dom=new JSDOM(await fs.readFile(new URL('../pages/mypage/index.html',import.meta.url),'utf8'),{url:base+'/pages/mypage/index.html'}),doc=dom.window.document;
+ dom.window.scrollTo=()=>{};
+ dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};dom.window.HTMLDialogElement.prototype.close=function(value){this.returnValue=value;this.open=false;this.dispatchEvent(new dom.window.Event('close'));};
+ const globals={window:dom.window,document:doc,location:dom.window.location,CustomEvent:dom.window.CustomEvent,confirm:()=>true,requestAnimationFrame:fn=>fn()};const old=new Map(Object.keys(globals).map(k=>[k,Object.getOwnPropertyDescriptor(globalThis,k)]));
+ for(const [k,v] of Object.entries(globals))Object.defineProperty(globalThis,k,{configurable:true,writable:true,value:v});
+ globalThis.fetch=(url,options={})=>network(new URL(url,base),{...options,headers:{...options.headers,Cookie:cookie}});
+ t.after(async()=>{globalThis.fetch=network;for(const k of Object.keys(globals)){if(old.get(k))Object.defineProperty(globalThis,k,old.get(k));else delete globalThis[k];}dom.window.close();await new Promise(r=>server.close(r));await runtime.close();await fs.rm(dir,{recursive:true,force:true});});
+ const wait=async check=>{for(let i=0;i<150;i++){if(await check())return;await new Promise(r=>setTimeout(r,10));}assert.fail('DOM update timed out');};
+ await import('../pages/mypage/mypage.js');
+ assert.equal(doc.querySelector('#cnt-upload').textContent,'1');assert.equal(doc.querySelectorAll('.mp-bar img').length,0,'장소명은 HTML로 실행되지 않아야 한다');
+ const button=(selector,label)=>[...doc.querySelectorAll(selector+' button')].find(b=>b.textContent===label);
+ button('#my-photo-grid','수정').click();doc.querySelector('#edit-caption').value='수정한 설명';doc.querySelector('#edit-place').value='도서관';doc.querySelector('#edit-dialog').close('save');
+ await wait(()=>doc.querySelector('#my-photo-grid').textContent.includes('수정한 설명'));
+ button('#liked-grid','♥ 좋아요 취소').click();await wait(()=>doc.querySelectorAll('#liked-grid .mp-photo').length===0);assert.equal(doc.querySelector('#cnt-like').textContent,'0');
+ location.hash='account';window.dispatchEvent(new dom.window.HashChangeEvent('hashchange'));
+ assert.equal(doc.querySelector('#account-edit').hidden,false);
+ button('#account-edit','닉네임 수정').click();doc.querySelector('#nickname-input').value='나의 기록';doc.querySelector('#account-form').dispatchEvent(new dom.window.Event('submit',{cancelable:true}));await wait(()=>doc.querySelector('#nickname').textContent==='나의 기록');
+ button('#my-photo-grid','삭제').click();await wait(()=>doc.querySelector('#cnt-upload').textContent==='0');
+ assert.equal(doc.querySelectorAll('#my-photo-grid .mp-photo').length,0);assert.equal(await runtime.repo.get('mine'),null);
+});

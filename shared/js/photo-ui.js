@@ -39,7 +39,7 @@ export async function showPhotoDetail(id){
  let liked=likedIds.includes(p.id),count=p.likeCount;
  const update=()=>{like.textContent=`${liked?'♥':'♡'} 좋아요 ${count}`;like.setAttribute('aria-pressed',String(liked));};update();
  like.onclick=async()=>{like.disabled=true;msg.replaceChildren();try{const result=await setPhotoLiked(p.id,!liked);liked=result.liked;count=result.photo.likeCount;update();document.dispatchEvent(new CustomEvent('photos-changed'));}catch(e){msg.append(el('span','error',e.message));if(e.code==='AUTH_REQUIRED'){const a=el('a','','로그인 화면으로 →');a.href=pageUrl('login');msg.append(a);}}finally{like.disabled=false;}};
- actions.append(el('small','muted','계정 정보는 공개되지 않아요.'),like);body.append(actions,msg,el('p','notice',p.isDemo?'실제 숭실대 촬영 기록이 아닌 데모입니다. 좋아요는 이 브라우저에서만 유지됩니다.':'이 브라우저에 저장된 사진입니다. 다른 기기나 다른 사용자에게는 보이지 않아요.'));root.append(body);
+ actions.append(el('small','muted','계정 정보는 공개되지 않아요.'),like);body.append(actions,msg,el('p','notice',p.isDemo?'실제 숭실대 촬영 기록이 아닌 예시 사진입니다. 좋아요는 서버에 저장됩니다.':'서버에 저장된 사진입니다. 등록한 사진은 다른 사용자도 조회할 수 있어요.'));root.append(body);
  }catch(e){if(token===request)root.replaceChildren(el('p','modal-body error',e.message));}
 }
 export function showPhotoGroup(photos){

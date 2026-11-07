@@ -16,7 +16,7 @@
 <body>
   <header id="site-header"></header>
 
-  <main class="page mp">
+  <main class="page mp"><div id="mypage-status" role="status"></div>
     <!-- ===== 첫 화면 ===== -->
     <section class="mp-view" id="view-home">
       <section class="intro">
@@ -101,22 +101,11 @@
       <a href="#" class="mp-back">‹ 마이페이지</a>
       <h1 class="mp-view-title">내 정보 확인</h1>
 
-      <!-- 1단계: 본인 확인 -->
-      <form class="mp-card mp-form mp-verify" id="verify-form">
-        <div class="mp-lock" aria-hidden="true">🔒</div>
-        <h2>본인 확인</h2>
-        <p class="mp-muted mp-small">내 정보는 나만 볼 수 있어요. 비밀번호를 한 번 더 확인할게요.</p>
-        <label for="verify-password">현재 비밀번호</label>
-        <input id="verify-password" type="password" autocomplete="current-password" required>
-        <p class="mp-form-error" id="verify-error" role="alert" hidden></p>
-        <button type="submit" class="button">확인</button>
-      </form>
-
       <!-- 2단계: 내 정보 + 항목별 수정 -->
       <div id="account-edit" class="mp-card mp-info" hidden>
         <div class="mp-info-head">
           <h2>내 계정 정보</h2>
-          <span class="mp-verified">✓ 본인 확인 완료</span>
+          <span class="mp-verified">로그인한 내 계정</span>
         </div>
 
         <div class="mp-info-row">
@@ -138,22 +127,7 @@
           </div>
         </form>
 
-        <div class="mp-info-row">
-          <span class="mp-info-label">비밀번호</span>
-          <span class="mp-info-value mp-info-secret">••••••••</span>
-          <button type="button" class="button secondary small" data-edit="password">비밀번호 수정</button>
-        </div>
-        <form class="mp-inline-form" id="password-form" hidden>
-          <label for="new-password">새 비밀번호 <span class="mp-muted">(영문, 숫자 포함 8자 이상)</span></label>
-          <input id="new-password" type="password" autocomplete="new-password" minlength="8" required>
-          <label for="new-password-check">새 비밀번호 확인</label>
-          <div class="mp-inline-row">
-            <input id="new-password-check" type="password" autocomplete="new-password" minlength="8" required>
-            <button type="button" class="button secondary small" data-cancel>취소</button>
-            <button type="submit" class="button small">변경</button>
-          </div>
-          <p class="mp-form-error" id="password-error" role="alert" hidden></p>
-        </form>
+        <div class="mp-info-row"><span class="mp-info-label">학교 계정</span><span class="mp-info-value">비밀번호는 학교 사이트에서 관리해요.</span><a class="button secondary small" href="https://saint.ssu.ac.kr/" target="_blank" rel="noopener noreferrer">u-SAINT 열기</a></div>
 
         <div class="mp-info-row">
           <span class="mp-info-label">가입일</span>
@@ -207,11 +181,11 @@
       <form method="dialog" id="edit-form">
         <h2>사진 정보 수정</h2>
         <label for="edit-caption">설명</label>
-        <input id="edit-caption" maxlength="60">
+        <input id="edit-caption" maxlength="1000" required>
         <label for="edit-place">촬영 장소명</label>
-        <input id="edit-place" maxlength="30">
+        <input id="edit-place" maxlength="100" required>
         <div class="mp-dialog-actions">
-          <button value="cancel" class="button secondary small">취소</button>
+          <button formnovalidate value="cancel" class="button secondary small">취소</button>
           <button value="save" class="button small">저장</button>
         </div>
       </form>

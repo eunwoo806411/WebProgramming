@@ -137,7 +137,12 @@ export async function submitUpload(input) {
   return createPhoto(input);
 }
 
-$('#upload-auth').textContent = await getCurrentUser() ? '개발용 테스트 사용자로 접속 중입니다.' : '현재 비로그인 상태예요. 사진 등록에는 로그인이 필요합니다.';
+try{
+ const user=await getCurrentUser();
+ $('#upload-auth').textContent=user?'로그인한 계정으로 사진을 남길 수 있어요.':'사진 등록에는 로그인이 필요해요.';
+ if(!user){const link=document.createElement('a');link.href=pageUrl('login');link.textContent='로그인하기';link.className='button secondary small';$('#upload-auth').append(' ',link);}
+}catch(error){$('#upload-auth').textContent=error.message;}
+
 
 form.onsubmit = async e => {
   e.preventDefault();

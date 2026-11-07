@@ -12,11 +12,11 @@ export async function mountLayout(activePage){
  const link=el('a','',label);link.href=pageUrl(key);if(key===activePage)link.setAttribute('aria-current','page');
  if(key==='mypage'){nav.append(mountMypageMenu(link));continue;}
  nav.append(link);}
- const actions=el('div','header-actions');const user=await getCurrentUser();
- if(user){actions.append(el('span','badge','테스트 로그인'));const b=el('button','text-button','로그아웃');b.onclick=async()=>{try{await signOut();location.href=pageUrl('login');}catch(e){notice(e.message);}};actions.append(b);}
+ const actions=el('div','header-actions');let user=null;try{user=await getCurrentUser();}catch(e){notice(e.message);}
+ if(user){actions.append(el('span','badge','로그인됨'));const b=el('button','text-button','로그아웃');b.onclick=async()=>{try{await signOut();location.href=pageUrl('login');}catch(e){notice(e.message);}};actions.append(b);}
  else{const a=el('a','button secondary small','로그인');a.href=pageUrl('login');actions.append(a);}
  header.append(brand,nav,actions);
- const footer=document.querySelector('#site-footer');footer.replaceChildren(el('strong','','숭실 한 장'),el('span','','우리의 시간을 담는 지도.'),el('small','','학생 프로젝트 데모 · 공식 서비스가 아닙니다. 기록은 이 브라우저에만 저장됩니다.'));
+ const footer=document.querySelector('#site-footer');footer.replaceChildren(el('strong','','숭실 한 장'),el('span','','우리의 시간을 담는 지도.'),el('small','','학생 프로젝트 데모 · 공식 서비스가 아닙니다. 등록한 사진과 좋아요는 서버에 저장됩니다.'));
 }
 function mountMypageMenu(link){
  const item=el('div','nav-item');link.setAttribute('aria-haspopup','true');
