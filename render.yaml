@@ -3,7 +3,7 @@ services:
   - type: web
     name: soongsil-one-frame-login
     runtime: node
-    branch: feature/login-server
+    branch: main
     plan: free
     buildCommand: npm ci
     startCommand: npm start
@@ -18,6 +18,8 @@ services:
       - key: ALLOW_TEST_LOGIN
         value: "false"
       - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL_CA
         sync: false
       - key: SUPABASE_URL
         sync: false
