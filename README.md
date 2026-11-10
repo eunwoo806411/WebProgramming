@@ -1,196 +1,153 @@
-## 서버 실행과 메인페이지 백엔드
+# 숭실 한 장
 
-사이트와 API는 Node.js 22에서 함께 실행합니다. GitHub Pages와 Python 정적 서버에서는 로그인·사진 API를 실행할 수 없습니다.
+숭실대학교의 풍경과 일상을 **사진 · 지도 · 시간**으로 남기고 둘러보는 팀 프로젝트입니다.
+캠퍼스 지도 위에 사진을 남기고, 기간을 바꿔 가며 "같은 장소, 다른 시간"을 발견할 수 있습니다.
+
+- **웹사이트**: https://soongsil-one-frame.onrender.com
+- 화면은 일반 HTML/CSS/JavaScript(ES modules)로 만들었고 프레임워크·빌드 과정이 없습니다.
+- **PC 전용**(최소 폭 1100px) 화면입니다.
+
+> GitHub Pages(`eunwoo806411.github.io/WebProgramming`)에는 서버가 없어서 로그인·사진 기능이 동작하지 않습니다. 위 Render 주소(https://soongsil-one-frame.onrender.com)를 사용하세요.
+
+## 구조
+
+```text
+브라우저 (HTML / CSS / JavaScript)
+   │  우리 사이트의 /api/... 요청
+   ▼
+Node.js 22 + Express 5 서버  (Render)
+   ├─ PostgreSQL ─▶ Supabase DB       사진 정보 · 좋아요 · 닉네임 · 로그인 세션
+   ├─ Storage API ─▶ Supabase Storage  사진 파일(JPEG)
+   └─ 로그인 확인 ─▶ 숭실대 통합로그인(Smart ID)
+```
+
+- 브라우저는 DB에 직접 접근하지 않습니다. 모든 데이터는 서버 API를 거칩니다.
+- 학교 비밀번호는 학교 로그인 확인에만 쓰고 저장하지 않습니다.
+- 공개 사진 API에는 작성자 학번이 포함되지 않습니다.
+- 외부 저장소 설정이 없으면(로컬 개발) SQLite와 `storage/` 폴더를 대신 사용합니다.
+
+## 페이지와 담당 파일
+
+| 페이지 | 파일 | 기능 |
+|---|---|---|
+| 로그인 | `pages/login/*` | 학번·비밀번호로 학교 계정 확인, 로그인 없이 둘러보기. `?next=`로 로그인 후 원래 페이지 복귀 |
+| 지도에서 발견하기 (메인) | `pages/main/*` | 캠퍼스 지도의 사진 묶음, 기간 필터(기본 최근 3일), 지도 범위별 목록 10장씩 더 보기, 상세·좋아요 |
+| 사진 남기기 | `pages/upload/*` | 사진 고르기(끌어다 놓기·HEIC 지원), 지도 핀 또는 건물로 위치 선택, 촬영 시각 자동 입력. 자세한 내용은 [`pages/upload/README.md`](pages/upload/README.md) |
+| 마이페이지 | `pages/mypage/*` | 프로필·등급, 발자취 지도, 활동 기록, 내 사진 수정·삭제, 좋아요한 사진, 닉네임 변경, 통계 |
+| 전체 사진 | `pages/explore/*` | 최신순·인기순 24장씩 더 보기, 상세 창 |
+| 공통 화면 | `shared/css/common.css`, `shared/js/*` | 메뉴·경로·상세 창·시간 처리·서버 통신. **수정 전 팀원과 조율** |
+| 서버 | `server.js`, `shared/server/*` | 로그인·세션, 사진 API, DB·Storage 연결 |
+| DB 스키마 | `supabase/migrations/*.sql` | Supabase에 번호 순서대로 적용 |
+| 샘플 | `data/mock-photos.js` | 로컬 개발용 예시 사진 12장 (배포에서는 넣지 않음) |
+
+페이지는 `shared/js/service.js`만 통해 데이터에 접근합니다. 공통 코드를 페이지 안에 복사하지 말고 import하세요.
+
+## 로컬에서 실행
+
+Node.js **22.12 이상 23 미만**이 필요합니다.
 
 ```sh
 npm ci
 npm start
 ```
 
-브라우저에서 `http://localhost:3000`을 여세요. 외부 저장소 환경변수가 없으면 개발용 SQLite와 로컬 사진 폴더를 사용합니다. 로컬 데이터는 실제 배포용 영구 저장소가 아닙니다.
+브라우저에서 http://localhost:3000 을 엽니다. `file://`이나 Python 정적 서버로는 로그인·사진 기능이 동작하지 않습니다.
 
-### 공개 배포 준비
+- 외부 저장소 환경변수가 없으면 `storage/`의 SQLite와 사진 폴더를 씁니다. 실제 배포 데이터와 연결되지 않습니다.
+- 예시 사진 12장이 한 번 추가됩니다. 날짜가 2026년 9월이라 기본 "최근 3일"에는 안 보이니 **전체** 버튼을 누르세요.
+- 학교 계정 없이 테스트하려면 `.env`에 `ALLOW_TEST_LOGIN=true`를 넣고 학번 `test`, 비밀번호 `1234`로 로그인합니다. **이 테스트 로그인은 배포 환경(`NODE_ENV=production`)에서는 항상 막혀 있습니다.**
 
-Render의 Node 서버에 **Supabase PostgreSQL·Storage**를 연결하도록 구현했습니다. 사진·좋아요·로그인 세션은 DB에, 이미지 파일은 Storage에 저장합니다. Render 서버가 쉬거나 재시작되어도 해당 외부 저장소의 데이터를 다시 읽습니다.
+`.env.example`을 복사해 `.env`를 만들면 됩니다. `.env`는 Git에 올리지 마세요.
 
-개발 환경에서는 Supabase 연결과 임시 사진의 저장·수정·삭제를 확인했습니다. 새 환경에서는 프로젝트 생성 후 `supabase/migrations/`의 SQL을 번호 순서대로 적용하고 `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SESSION_SECRET`을 서버 환경변수로 설정해야 합니다. 배포 환경에서는 외부 저장소 설정이 빠지면 시작을 중단합니다. 비밀키를 프런트엔드 코드나 Git에 넣지 마세요.
+## 배포 (Render + Supabase)
 
-설정 순서·API·테스트 방법은 [메인페이지 백엔드 안내](docs/main-backend.md)를 참고하세요. `render.yaml`의 배포 브랜치는 팀에서 통합한 브랜치로 맞추세요. 학교 계정 로그인 방식은 기존 구현을 유지했습니다.
+1. Supabase 프로젝트를 만들고 SQL Editor에서 `supabase/migrations/`의 SQL을 **번호 순서대로** 실행합니다. (`photos` 버킷도 함께 만들어집니다)
+2. Render에서 이 저장소의 `main` 브랜치로 Web Service를 만듭니다. Build `npm ci`, Start `npm start`, Health Check `/api/health`.
+3. Render 환경변수를 설정합니다.
 
-아래는 **기존 정적 데모 문서**입니다. 브라우저 저장·데모 로그인에 관한 설명은 정적 데모 기준이며, 서버 실행과 저장소 설정은 위 안내를 따르세요.
-
----
-
-# 숭실 한 장
-
-숭실대학교의 풍경과 일상을 사진·지도·시간으로 탐색하는 팀 프로젝트입니다. 일반 HTML/CSS/JavaScript ES modules를 사용하며 프런트엔드 프레임워크와 빌드 과정은 없습니다.
-
-현재는 메인 기능과 팀원별 페이지 기본 구조가 구현된 **PC 전용(최소 폭 1100px)** 프로젝트입니다. 모바일 전용 배치는 제외했습니다.
-
-[웹사이트 보기](https://eunwoo806411.github.io/WebProgramming/)
-
-## 실행
-
-```sh
-cd WebProgramming
-python3 -m http.server 8001 --bind 127.0.0.1
-```
-
-브라우저에서 http://127.0.0.1:8001 을 여세요. 루트는 로그인 화면으로 이동합니다. `file://`로 직접 열지 마세요. 종료는 서버 터미널에서 Ctrl+C입니다. 이미 8001 서버가 켜져 있으면 중복 실행하지 않습니다.
-
-- **로그인 없이 데모로 둘러보기**: 지도·사진 상세·시간 필터 사용 가능, 좋아요는 로그인 안내.
-- **개발용 테스트 로그인**: 실제 인증 없이 좋아요 확인. `shared/js/config.js`의 `demoLoginEnabled`를 false로 바꾸면 버튼이 숨겨집니다. 실제 인증을 연결할 때 데모 함수도 교체하세요.
-- 학번·비밀번호는 입력받거나 저장·전송하지 않습니다.
-- 인터넷은 OpenStreetMap 배경 지도와 외부 샘플 사진을 불러올 때 필요합니다.
-- 이 서버는 내 컴퓨터에서만 접속됩니다. 팀원에게 자동 공유되지 않습니다.
-
-## 구현 범위와 담당 파일
-
-| 담당 | 수정할 파일 | 현재 상태 / 후속 작업 |
-|---|---|---|
-| 로그인 | `pages/login/index.html`, `login.css`, `login.js` | 기본 입력 영역과 데모 입장. 실제 인증 서버 연결 필요 |
-| 사진 등록 | `pages/upload/*` | 지도 위치 선택 또는 숭실대 건물 선택·사진 미리보기·등록 구현. 저장은 브라우저(데모) |
-| 메인 | `pages/main/index.html`, `main.css`, `main.js`, `map.js`, `clusters.js`, `time-controls.js` | 실제 지도, 썸네일 묶음, 상세, 좋아요, 시간 필터 구현 |
-| 마이페이지 | `pages/mypage/index.html`, `mypage.css`, `mypage.js` | 탭·목록 영역·사용자 ID 기반 조회 연결 지점. 조회 구현 필요 |
-| 전체 사진 | `pages/explore/index.html`, `explore.css`, `explore.js` | 정렬 선택·카드 영역·상세 연결 지점. 목록 조회 연결 필요 |
-| 공통 | `shared/css/common.css`, `shared/js/*` | 메뉴·경로·데이터·사용자·상세 UI. 수정 전 담당자 간 조율 |
-| 샘플 | `data/mock-photos.js` | 동일 좌표·가까운 좌표 등을 포함한 12개 데모 기록 |
-| 자원 | `shared/assets/` | 이미지 대체 화면, Leaflet 1.9.4와 라이선스 |
-| 검증 | `tests/core.test.mjs`, `tests/map-harness.html` | 핵심 자동 검사, 타일 없는 지도 검사 화면 |
-| 문서 | `docs/` | 로컬 검증 결과 |
-
-각 페이지에는 전용 HTML/CSS/JS가 함께 있습니다. 공통 코드를 페이지 안에 복사하지 말고 import하세요. `package.json`은 Node 검사와 ES module 선언에만 사용되며 웹 실행에 npm 설치는 필요하지 않습니다.
-
-## 데이터 구조
-
-```js
-const photo = {
-  id: 'demo-01',
-  authorId: 'sample-user-1', // 내부 사용자 구분용. 공개 UI에 표시하지 않음
-  imageUrl: 'https://example.com/photo.jpg',
-  latitude: 37.4964,
-  longitude: 126.95705,
-  placeName: '중앙 잔디광장',
-  description: '봄 수업 사이, 잠깐의 산책.',
-  capturedAt: '2026-04-08T14:23:00+09:00',
-  uploadedAt: '2026-09-22T09:00:00+09:00',
-  likeCount: 128,
-  isDemo: true
-};
-const user = { id: 'demo-user', isDemo: true };
-```
-
-촬영 시각과 업로드 시각은 서로 다른 필드입니다. 실제 서버에서는 업로드 완료 시각을 서버가 부여해야 합니다. 공개 화면에 계정 정보를 표시하지 않지만 프런트엔드 mock 파일 자체는 누구나 읽을 수 있습니다. 실제 익명 서비스에서는 서버가 공개 응답에서 작성자 내부 정보도 제외해야 합니다.
-
-샘플 이미지·장소·날짜는 실제 숭실대 촬영 기록이 아닙니다. 외부 예시 이미지는 기존 데모의 Unsplash URL을 사용하며 화면에 DEMO로 표시합니다. 이미지를 불러오지 못하면 대체 이미지가 표시됩니다. 업로드 샘플 기간은 한국 시간 2026-09-22 09:00:00 ~ 2026-09-24 18:00:00입니다.
-
-## 공통 함수
-
-페이지는 `shared/js/service.js`만 통해 데이터에 접근합니다. 반환값은 모두 Promise입니다.
-
-| 함수 | 반환 / 동작 |
+| 변수 | 값 |
 |---|---|
-| `getCurrentUser()` | User 또는 null |
-| `signInDemo()` | 고정 개발용 User로 입장 |
-| `signOut()` | 데모 세션 종료. 좋아요 기록은 보존 |
-| `listPhotos({start,end,field,order})` | 필터·정렬된 Photo[]. 인자 생략 가능 |
-| `getPhoto(id)` | Photo 또는 null |
-| `getUserLikedPhotoIds(userId)` | 사용자별 좋아요 사진 ID 배열 |
-| `setPhotoLiked(photoId, liked)` | `{photo, liked}`. 로그인 필요, 중복 증가 방지 |
-| `createPhoto(input)` | 로그인 필요. 이미지를 긴 변 900px JPEG로 줄여 이 브라우저에 저장하고 생성된 Photo 반환. 서버 연결 시 교체 |
-| `listUserPhotos(userId)` | 현재 `{status:'not-connected',userId,items:[]}` |
-| `listUserLikedPhotos(userId)` | 현재 `{status:'not-connected',userId,items:[]}` |
+| `NODE_VERSION` | `22` |
+| `NODE_ENV` | `production` |
+| `SESSION_SECRET` | 긴 임의 문자열 (Render의 Generate 사용) |
+| `DATABASE_URL` | Supabase **Connect → Session pooler** 주소. 비밀번호 특수문자는 URL 인코딩 |
+| `DATABASE_SSL_CA` | Supabase **Project Settings → Database → SSL Configuration**에서 받은 인증서 내용 전체 |
+| `SUPABASE_URL` | Supabase 프로젝트 URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용 Secret 키 |
+| `SUPABASE_STORAGE_BUCKET` | `photos` |
+| `SEED_DEMO_PHOTOS` | `false` |
+
+- 배포 모드에서는 DB·Storage·세션 설정이 하나라도 빠지면 서버가 시작을 멈춥니다.
+- **Secret 키, DB 주소, `.env`는 GitHub·단체방·공유 문서에 올리지 마세요.**
+- Render 무료 서버는 15분 동안 접속이 없으면 잠들고, 다음 접속 때 깨어나는 데 30초~1분 걸립니다. 데이터는 Supabase에 있어서 사라지지 않습니다.
+
+자세한 설정과 API는 [메인페이지 백엔드 안내](docs/main-backend.md), [백엔드 인수인계](docs/team-backend-handover.md)를 참고하세요.
+
+## 데이터
 
 ```js
-import { listPhotos, getCurrentUser, setPhotoLiked } from '../../shared/js/service.js';
-const photos = await listPhotos({ order: 'latest' });
-const user = await getCurrentUser();
-if (user && photos.length) await setPhotoLiked(photos[0].id, true);
+// 공개 API가 돌려주는 사진
+{
+  id: 'upload-...',
+  imageUrl: 'https://...supabase.co/storage/v1/object/public/photos/upload-....jpg',
+  latitude: 37.4964, longitude: 126.95705,
+  placeName: '중앙 잔디광장',          // 100자 이내
+  description: '봄 수업 사이, 잠깐의 산책.', // 1000자 이내
+  capturedAt: '2026-04-08T05:23:00.000Z',  // 촬영 시각 (사용자 입력·사진 정보, UTC 저장)
+  uploadedAt: '2026-09-22T00:00:00.000Z',  // 업로드 시각 (서버가 기록)
+  likeCount: 128, liked: false, isDemo: false
+}
 ```
 
-`start`·`end`는 Unix 밀리초입니다. 데이터 오류 코드는 `AUTH_REQUIRED`, `PHOTO_NOT_FOUND`, `STORAGE_UNAVAILABLE`, `NOT_IMPLEMENTED`입니다. 저장에 실패하면 성공으로 표시하지 않습니다.
+- 화면의 입력·표시는 한국 시간(KST), 저장은 UTC ISO 문자열입니다.
+- 메인 기간 필터와 최신순 정렬은 **업로드 시각** 기준입니다. (`shared/js/config.js`의 `timeField`)
+- 사진은 브라우저에서 긴 변 1600px JPEG로 줄여 올리며, 원본과 EXIF(위치 등)는 저장하지 않습니다.
 
-좋아요 여부는 사진과 분리해 사용자 ID별로 저장합니다. 표시 좋아요 수는 샘플 기본 수에 해당 브라우저의 사용자별 데모 좋아요를 합산합니다. 저장 키는 `soongsil-one-frame-preview-v1`입니다. 페이지 파일은 localStorage를 직접 사용하지 않습니다. 서버 연결 시 `service.js`와 어댑터를 교체하면 됩니다.
+## 주요 API
 
-**브라우저 저장 데이터는 사용자 사이에 공유되지 않습니다.** 다른 기기·브라우저·주소(localhost와 127.0.0.1 포함)·포트는 별도 저장소이며, 브라우저 데이터를 지우면 기록이 사라집니다.
-
-### 등록·조회 연결 지점
-
-`upload.js`의 `readUploadInput(form)`은 다음 값을 만듭니다.
-
-```js
-{ imageFile, latitude, longitude, placeName, description, capturedAt }
-```
-
-위치는 지도에서 직접 찍거나 숭실대 건물 목록(`pages/upload/campus-buildings.js`)에서 고를 수 있습니다. 어느 쪽이든 위도·경도 입력에 자동 반영되고(건물은 중심 좌표), 건물을 고르면 비어 있는 장소명이 건물 이름으로 채워집니다. `submitUpload(input)`이 `createPhoto`를 호출합니다. 등록한 사진은 별도 키 `soongsil-one-frame-uploads-v1`에 저장되어 `listPhotos`·`getPhoto`에 샘플과 함께 나옵니다(`isDemo:false`). 서버 연결 시 `upload-store.js`·`image-encode.js`는 필요 없어집니다. 자세한 내용은 `pages/upload/README.md`.
-
-`mypage.js`의 `loadMyPhotos(tab)`은 현재 사용자 ID를 조회 함수로 전달합니다. 담당자는 공통 조회 결과를 `{status:'ready', items: Photo[]}`로 반환하도록 연결하면 됩니다. 미로그인·미연결·연결 후 빈 결과는 서로 구분됩니다.
-
-`explore.js`의 `getExploreQuery()`는 현재 정렬 상태를 반환하고 `renderExplorePhotos(photos)`는 연결 후 목록을 표시합니다. 정렬 버튼에서 조회 함수를 호출하도록 연결하세요.
-
-## 페이지 이동과 사진 상세
-
-`shared/js/layout.js`의 `mountLayout(pageName)`으로 공통 메뉴를 붙입니다. `routes.js`의 `pageUrl(name)`과 `photoUrl(id)`를 사용하면 GitHub Pages처럼 하위 폴더에 배포해도 경로를 유지합니다.
-
-```js
-import { photoUrl } from '../../shared/js/routes.js';
-location.href = photoUrl('demo-01'); // 메인 ?photo=demo-01 상세 보기
-```
-
-메인의 상세 모달은 `shared/js/photo-ui.js`에서 관리합니다. 다른 페이지는 해당 URL로 연결하면 됩니다.
-
-## 시간 필터와 정렬
-
-- 기준은 `CONFIG.timeField = 'uploadedAt'` 한 곳에서 정합니다. 추후 `'capturedAt'`으로 교체할 수 있습니다.
-- 화면 입력·표시는 한국 시간(KST), 저장값은 시간대가 있는 ISO 문자열입니다.
-- 필터는 `start <= 사진 시각 <= end`로 양쪽 경계를 포함합니다.
-- 날짜·시간 입력과 시작·끝 슬라이더는 초 단위로 연동됩니다.
-- 역순·빈 입력은 오류와 빈 결과를 표시합니다. 유효하지만 해당 사진이 없으면 별도 안내가 나옵니다.
-- 처음 열면 이 컴퓨터의 오늘 날짜(한국 시간)를 끝 날짜로, 그 3일 전을 시작 날짜로 선택합니다(`최근 3일`).
-- 전체 기간은 데이터의 최소·최대 시각으로 돌아갑니다.
-- 최신순: `uploadedAt` 내림차순.
-- 인기순: `likeCount` 내림차순 → `uploadedAt` 내림차순. 모두 같으면 ID로 안정 정렬합니다.
+| 요청 | 설명 |
+|---|---|
+| `POST /api/login`, `POST /api/logout` | 학교 계정 로그인·로그아웃 |
+| `GET /api/me`, `PATCH /api/me` | 내 프로필 조회·닉네임 변경 (2~12자) |
+| `GET /api/photos/extent` | 전체 사진의 업로드 시각 범위 |
+| `GET /api/map/photos` | 기간·지도 범위 안의 지도용 사진 |
+| `GET /api/photos`, `POST /api/photos/search` | 목록 (기간·지도 범위·정렬·커서), 선택한 묶음 목록 |
+| `GET /api/photos/:id` | 사진 상세 |
+| `POST /api/photos` | 사진 등록 (로그인 필요) |
+| `PATCH /api/photos/:id`, `DELETE /api/photos/:id` | 내 사진 수정·삭제 |
+| `PUT /api/likes/:id` | 좋아요 등록·취소 (`{liked:true/false}`) |
+| `GET /api/my/photos`, `GET /api/my/likes` | 내 사진, 내가 좋아요한 사진 |
+| `GET /api/health` | 서버 상태 확인 |
 
 ## 지도
 
-[Leaflet 1.9.4](https://leafletjs.com/download.html)와 [OpenStreetMap 표준 타일](https://operations.osmfoundation.org/policies/tiles/)을 사용합니다. API 키와 비밀 키가 필요 없습니다. Leaflet의 JS/CSS/LICENSE는 `shared/assets/vendor/leaflet`에 포함했습니다. 갱신할 때 세 파일을 함께 교체하세요.
+[Leaflet 1.9.4](https://leafletjs.com/)와 [OpenStreetMap 표준 타일](https://operations.osmfoundation.org/policies/tiles/)을 사용하며 API 키가 필요 없습니다.
 
-- 지도 우측 아래의 OpenStreetMap 기여자 출처 표시를 가리지 마세요.
-- 표준 브라우저 캐시와 Referer를 유지합니다. 타일 대량 다운로드·미리 받기·오프라인 다운로드를 추가하지 마세요.
-- 공용 타일은 가용성이 보장되지 않습니다. 공개 운영 시 트래픽과 최신 정책을 검토하고 필요하면 별도 공급자로 바꾸세요.
-- 공급자 URL·최대 확대·중심 좌표는 `shared/js/config.js`에서 관리합니다.
-- 동일 좌표 사진을 먼저 묶고, 축소 상태에서 가까운 좌표 그룹을 화면 거리로 다시 묶습니다.
-- 최대 확대 21에서는 서로 다른 좌표 그룹을 분리합니다. 배경 타일은 최대 19를 확대 표시하므로 추가 세부 지도가 생기지는 않습니다.
-- 같은 좌표의 사진은 최대 확대에서도 유지되며 클릭하면 목록을 표시합니다. 개수는 시간 필터 통과 사진만 계산합니다.
+- 지도 오른쪽 아래의 OpenStreetMap 출처 표시를 가리지 마세요.
+- 타일을 대량으로 미리 받거나 반복 다운로드하는 기능·검사를 추가하지 마세요.
+- 캠퍼스 범위·중심·확대 단계는 `shared/js/config.js`에서 관리합니다.
+- 같은 좌표의 사진은 하나로 묶고, 축소하면 가까운 묶음을 다시 합칩니다.
 
-## 검증
-
-Node 20.19 이상 또는 22.12 이상에서:
+## 테스트
 
 ```sh
-node --test tests/*.test.mjs
+npm test
 ```
 
-브라우저 군집 확인: http://127.0.0.1:8001/tests/map-harness.html
-
-검사용 화면은 배경 타일을 요청하지 않으며 실제 메인 코드로 확대·축소와 시간 필터를 확인합니다. 공개 타일을 반복 다운로드하는 자동 검사는 하지 마세요. 확인 결과는 `docs/verification.md`를 참고하세요.
+테스트는 실제 Supabase와 분리된 임시 저장소에서 실행되며 실제 사진을 바꾸지 않습니다.
 
 ## 팀 협업
-
-저장소를 처음 받는 팀원은 `git clone https://github.com/eunwoo806411/WebProgramming.git`으로 내려받으세요.
-
-팀 저장소에서의 작업 예시:
 
 ```sh
 git switch main
 git pull
-git switch -c feature/main-map
-# 담당 페이지 수정 및 로컬 실행·검사
-git add pages/main
-git commit -m "feat: implement main photo map"
-git push -u origin feature/main-map
+git switch -c feature/upload        # 담당 기능 브랜치
+# 수정 → npm test → 로컬 확인
+git add pages/upload
+git commit -m "feat: ..."
+git push -u origin feature/upload   # GitHub에서 PR → 리뷰 후 main에 병합
 ```
 
-실제 기본 브랜치명이 다르면 그 이름을 사용하세요. 팀원별로 `feature/login`, `feature/upload`, `feature/mypage`, `feature/explore` 등 담당 브랜치에서 작업하고 PR로 리뷰 후 합칩니다. **shared, data 및 공통 함수 규격을 변경할 때는 팀원과 먼저 조율하세요.** 다른 페이지의 미완성 변경을 함께 커밋하지 않도록 파일을 확인합니다.
-
-실제 운영에는 인증·세션 검증, 사진 파일 저장, 서버 사용자별 조회·좋아요, 권한 확인, 업로드 시각 부여, 공개 데이터에서 작성자 정보 제거가 필요합니다. 이번 구현에는 이 서버들이 포함되지 않습니다.
+- `main`에 합쳐지면 Render가 자동으로 다시 배포합니다. Render는 조장 계정에만 있으니 배포 오류는 조장이 로그를 공유합니다.
+- `shared/`, `data/`, 서버 API 규격을 바꿀 때는 팀원과 먼저 조율하세요.
+- 다른 사람의 미완성 파일이 같이 커밋되지 않도록 `git status`로 확인하세요.
