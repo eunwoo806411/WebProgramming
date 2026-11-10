@@ -34,8 +34,12 @@ export function mountPhotoRoutes(app,{repo,files,requireLogin,cleanupDeletedPhot
  });
  app.post('/api/photos',requireLogin('사진 등록은 로그인 후 사용할 수 있어요.'),async(req,res)=>{
   const b=req.body??{},bad=message=>res.status(400).json({success:false,message});
-  const placeName=String(b.placeName??'').trim().slice(0,100),description=String(b.description??'').trim().slice(0,1000),captured=Date.parse(b.capturedAt);
+  const placeName=String(b.placeName??'').trim(),description=String(b.description??'').trim(),captured=Date.parse(b.capturedAt);
   if(!Number.isFinite(b.latitude)||!Number.isFinite(b.longitude)||!placeName||!description||!Number.isFinite(captured))return bad('등록 정보를 확인해 주세요.');
+  // 수정 API와 같은 글자 수 제한. 넘치면 잘라내지 않고 알려 줍니다.
+  if(placeName.length>100||description.length>1000)return bad('장소는 100자, 설명은 1000자 이내로 입력해 주세요.');
+  // 기기 시계 차이를 고려해 5분까지만 허용합니다.
+  if(captured>Date.now()+5*60000)return bad('촬영 시각은 현재보다 미래일 수 없어요.');
   const [[south,west],[north,east]]=CONFIG.map.maxBounds;
   if(b.latitude<south||b.latitude>north||b.longitude<west||b.longitude>east)return bad('숭실대 캠퍼스 지도 범위 안의 위치를 선택해 주세요.');
   const prefix='data:image/jpeg;base64,';if(typeof b.imageData!=='string'||!b.imageData.startsWith(prefix))return bad('사진 형식이 올바르지 않아요.');

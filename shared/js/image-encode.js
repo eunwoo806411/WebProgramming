@@ -1,6 +1,6 @@
-// 업로드 사진을 긴 변 900px 이하 JPEG data URL로 줄입니다. (localStorage 용량 절약)
+// 업로드 사진을 긴 변 1600px 이하 JPEG data URL로 줄입니다. (보통 300KB 안팎, 서버 한도 5MB)
 // 캔버스로 다시 그리므로 EXIF(촬영 기기·GPS 등)는 저장되지 않습니다.
-export const MAX_EDGE = 900;
+export const MAX_EDGE = 1600;
 export const JPEG_QUALITY = 0.8;
 
 export async function encodeImageFile(file) {

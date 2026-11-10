@@ -98,3 +98,12 @@ test('학교 인증 경계의 실패·성공을 구분하고 비밀번호는 세
  const me=await(await r.request('/api/me','GET',null,cookie)).json();assert.equal(me.user.id,'20260000');
  const sessions=await r.db.query('SELECT data FROM sessions');assert.equal(sessions.some(row=>row.data.includes(password)),false);
 });
+test('등록은 미래 촬영 시각과 글자 수 초과를 잘라내지 않고 400으로 거부한다',async t=>{
+ const r=await start(t);const cookie=await login(r);
+ const base={imageData:jpeg,latitude:37.496,longitude:126.957,placeName:'도서관',description:'확인',capturedAt:'2026-11-01T00:00:00Z'};
+ const future=new Date(Date.now()+60*60000).toISOString();
+ assert.equal((await r.request('/api/photos','POST',{...base,capturedAt:future},cookie)).status,400);
+ assert.equal((await r.request('/api/photos','POST',{...base,placeName:'가'.repeat(101)},cookie)).status,400);
+ assert.equal((await r.request('/api/photos','POST',{...base,description:'나'.repeat(1001)},cookie)).status,400);
+ assert.equal((await r.request('/api/photos','POST',{...base,placeName:'가'.repeat(100),description:'나'.repeat(1000)},cookie)).status,201);
+});
