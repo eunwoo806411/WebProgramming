@@ -17,8 +17,11 @@ const togglePasswordButton = document.querySelector('#toggle-password');
 const LOGIN_LABEL = '숭실대 계정으로 로그인';
 let busy = false;
 
+// ?next=upload 처럼 돌아갈 페이지가 있으면 로그인 후 그 페이지로 이동합니다. (정해진 페이지만 허용)
+const RETURN_PAGES = ['main', 'upload', 'mypage', 'explore'];
 export function completeLogin() {
-    location.href = pageUrl('main');
+    const next = new URL(location.href).searchParams.get('next');
+    location.href = pageUrl(RETURN_PAGES.includes(next) ? next : 'main');
 }
 
 // 로그인과 둘러보기가 동시에 실행되지 않도록 함께 잠급니다.

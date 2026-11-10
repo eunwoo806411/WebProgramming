@@ -1,8 +1,30 @@
 /* 사진 등록 페이지 전용 스타일. 이 파일은 upload 페이지에서만 로드됩니다. */
 .upload-layout{display:grid;grid-template-columns:minmax(0,650px) 1fr;gap:24px;max-width:1100px}
-.upload-box{border:1px dashed #b8c9aa;padding:25px;background:#f7faf2;border-radius:12px}
-.upload-box input{border:0;background:transparent;padding:10px 0}
-.upload-preview{width:100%;max-height:240px;object-fit:contain;border-radius:10px;background:#e4eadb;display:block}
+#upload-form{display:grid;gap:20px;align-content:start}
+.upload-fields{border:0;padding:0;margin:0;min-width:0}
+/* 로그인 전: 입력을 막고 안내를 먼저 보여줌 */
+.upload-gate{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px}
+#upload-form.is-locked .upload-fields{opacity:.5}
+#upload-form.is-locked .upload-map{pointer-events:none}
+/* 사진 고르기: 버튼 + 끌어다 놓기 */
+.upload-label{font-weight:650;font-size:12px}
+.upload-file-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.upload-drop{position:relative;border:1.5px dashed #b8c9aa;border-radius:12px;background:#f7faf2;transition:border-color .15s,background .15s}
+.upload-drop.is-dragging{border-color:var(--green);background:#eaf2e1}
+.upload-drop.has-image{border-style:solid;border-color:#cfd8c9;background:#fff}
+.upload-drop-empty{display:grid;justify-items:center;gap:10px;padding:30px 20px;text-align:center}
+.upload-drop-empty small{line-height:1.7}
+.upload-drop-icon{font-size:28px}
+.upload-drop-selected{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center;padding:14px}
+.upload-preview{width:200px;height:150px;object-fit:contain;border-radius:8px;background:#e4eadb;display:block}
+.upload-file-info{display:grid;gap:6px;min-width:0}
+.upload-file-info strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload-file-info small{font-size:12px}
+.upload-file-actions{display:flex;align-items:center;gap:6px;margin-top:4px}
+.upload-drop-busy{padding:44px 20px;text-align:center;font-size:13px;color:var(--muted)}
+.upload-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.upload-label-row small{font-weight:400;font-size:11px}
+.upload-field-note{font-size:12px;margin:-12px 0 0}
 .upload-notes{align-self:start}
 .upload-notes h2{margin-top:18px}
 .upload-notes ol{padding-left:20px;line-height:2.5;margin-bottom:24px}
@@ -20,6 +42,7 @@
 .leaflet-control-zoom a{color:var(--ink)!important}
 .leaflet-control-attribution{font-size:9px!important}
 #upload-status{margin:0;font-size:13px}
+#upload-status.success{color:var(--green);font-weight:650}
 #upload-status:empty{display:none}
 /* 위치 지정 방법: 지도에서 직접 찍기 / 건물로 선택 */
 .upload-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -34,7 +57,8 @@
 .upload-mode-option input:focus-visible+span{outline:3px solid #81a752;outline-offset:3px}
 .upload-buildings{display:grid;gap:10px}
 .upload-building-search input{min-height:40px}
-.upload-building-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:178px;overflow:auto;padding:2px}
+.upload-building-count{font-size:12px;margin:0}
+.upload-building-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;padding:2px}
 .upload-building-chip{min-height:38px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:12px;text-align:center;line-height:1.3;word-break:keep-all}
 .upload-building-chip:hover{border-color:#97b280;background:#f7faf2}
 .upload-building-chip[aria-pressed=true]{background:var(--green);border-color:var(--green);color:#fff;font-weight:650}
