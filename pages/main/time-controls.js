@@ -21,6 +21,7 @@ export function mountTimeControls(container,{photos,onChange}){
  const presets=[resetButton,...container.querySelectorAll('[data-period]')];
  const listeners=[];
  const listen=(node,event,handler)=>{if(node){node.addEventListener(event,handler);listeners.push(()=>node.removeEventListener(event,handler));}};
+ const storageKey='soongsil-main-time-selection';
  let period='recent';
  const times=photos.map(p=>Date.parse(p[CONFIG.timeField])).filter(Number.isFinite);
  const extent=times.length?[Math.min(...times),Math.max(...times)]:[Date.now(),Date.now()];
@@ -41,6 +42,7 @@ export function mountTimeControls(container,{photos,onChange}){
    rangeStart.value=String(start/1000);rangeEnd.value=String(end/1000);
    rangeStart.setAttribute('aria-valuetext',formatKst(start));rangeEnd.setAttribute('aria-valuetext',formatKst(end));
   }
+  if(valid)try{sessionStorage.setItem(storageKey,JSON.stringify({start,end,period}));}catch{}
   onChange({...selection,valid});
  }
  function writeDates(){if(dateStart)dateStart.value=toKstInput(selection.start).slice(0,10);if(dateEnd)dateEnd.value=toKstInput(selection.end).slice(0,10);}
@@ -54,5 +56,6 @@ export function mountTimeControls(container,{photos,onChange}){
  listen(inputStart,'input',fromInput);listen(inputEnd,'input',fromInput);listen(rangeStart,'input',fromRange);listen(rangeEnd,'input',fromRange);listen(resetButton,'click',reset);
  listen(dateStart,'input',fromDates);listen(dateEnd,'input',fromDates);listen(details,'toggle',sync);
  for(const button of presets.slice(1))listen(button,'click',()=>{period=button.dataset.period;selection=presetSelection(period);writeTimes();writeDates();sync();});
- showRecent();return {reset,destroy(){listeners.forEach(remove=>remove());}};
+ let saved;try{saved=JSON.parse(sessionStorage.getItem(storageKey));}catch{}
+ if(saved&&Number.isFinite(saved.start)&&Number.isFinite(saved.end)&&saved.start<=saved.end&&[null,'all','month','year','recent'].includes(saved.period)){period=saved.period;selection=period==='all'?{start:extent[0],end:extent[1]}:{start:saved.start,end:saved.end};writeTimes();writeDates();sync();}else showRecent();return {reset,destroy(){listeners.forEach(remove=>remove());}};
 }
